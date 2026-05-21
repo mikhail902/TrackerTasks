@@ -1,0 +1,79 @@
+{% extends 'base.html' %}
+{% block title %}Задачи{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center">
+    <h2>Задачи</h2>
+    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#taskModal">
+        <i class="bi bi-plus-lg"></i> Создать
+    </button>
+</div>
+
+<div class="row mt-3">
+    <div class="col-md-3">
+        <div class="card">
+            <div class="card-header bg-secondary text-white">Бэклог</div>
+            <div class="card-body" id="backlog"></div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card">
+            <div class="card-header bg-info text-white">К выполнению</div>
+            <div class="card-body" id="todo"></div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card">
+            <div class="card-header bg-warning text-white">В работе</div>
+            <div class="card-body" id="in_progress"></div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card">
+            <div class="card-header bg-success text-white">Готово</div>
+            <div class="card-body" id="done"></div>
+        </div>
+    </div>
+</div>
+
+<!-- Модалка создания задачи -->
+<div class="modal fade" id="taskModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Новая задача</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="taskForm">
+                    <div class="mb-3">
+                        <label>Название</label>
+                        <input type="text" name="title" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label>Описание</label>
+                        <textarea name="description" class="form-control" rows="3"></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label>Приоритет</label>
+                        <select name="priority" class="form-select">
+                            <option value="low">Низкий</option>
+                            <option value="medium" selected>Средний</option>
+                            <option value="high">Высокий</option>
+                            <option value="critical">Критичный</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label>Дедлайн</label>
+                        <input type="datetime-local" name="deadline" class="form-control">
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                <button type="button" class="btn btn-primary" onclick="createTask()">Создать</button>
+            </div>
+        </div>
+    </div>
+</div>
+<script src="/static/js/tasks.js"></script>
+{% endblock %}

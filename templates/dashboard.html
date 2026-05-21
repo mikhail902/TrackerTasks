@@ -1,0 +1,65 @@
+{% extends 'base.html' %}
+{% block title %}Дашборд{% endblock %}
+{% block content %}
+<h2>Дашборд</h2>
+<div class="row mt-4">
+    <div class="col-md-4">
+        <div class="card text-bg-primary mb-3">
+            <div class="card-body">
+                <h5>Всего задач</h5>
+                <h2 id="totalTasks">-</h2>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card text-bg-warning mb-3">
+            <div class="card-body">
+                <h5>В работе</h5>
+                <h2 id="inProgress">-</h2>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card text-bg-success mb-3">
+            <div class="card-body">
+                <h5>Выполнено</h5>
+                <h2 id="doneTasks">-</h2>
+            </div>
+        </div>
+    </div>
+</div>
+
+<h4 class="mt-4">Мои задачи</h4>
+<table class="table table-hover">
+    <thead>
+        <tr>
+            <th>Задача</th>
+            <th>Проект</th>
+            <th>Приоритет</th>
+            <th>Статус</th>
+            <th>Дедлайн</th>
+        </tr>
+    </thead>
+    <tbody id="myTasks"></tbody>
+</table>
+<script>
+async function loadDashboard() {
+    const tasks = await api.get('/tasks/assigned/');
+    document.getElementById('totalTasks').textContent = tasks.results.length;
+    document.getElementById('inProgress').textContent = tasks.results.filter(t => t.status === 'in_progress').length;
+    document.getElementById('doneTasks').textContent = tasks.results.filter(t => t.status === 'done').length;
+
+    const tbody = document.getElementById('myTasks');
+    tbody.innerHTML = tasks.results.map(t => `
+        <tr>
+            <td><a href="/tasks/${t.id}/">${t.title}</a></td>
+            <td>${t.project_name || '-'}</td>
+            <td><span class="badge bg-${t.priority === 'high' ? 'danger' : t.priority === 'medium' ? 'warning' : 'secondary'}">${t.priority}</span></td>
+            <td>${t.status}</td>
+            <td>${t.deadline ? new Date(t.deadline).toLocaleDateString() : '-'}</td>
+        </tr>
+    `).join('');
+}
+loadDashboard();
+</script>
+{% endblock %}

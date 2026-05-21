@@ -5,6 +5,7 @@ from django.conf.urls.static import static
 from drf_yasg.views import get_schema_view
 from drf_yasg import openapi
 from rest_framework import permissions
+from django.views.generic import TemplateView
 
 schema_view = get_schema_view(
     openapi.Info(
@@ -20,14 +21,21 @@ schema_view = get_schema_view(
 )
 
 urlpatterns = [
-    # Документация
     re_path(r'^swagger/$', schema_view.with_ui('swagger', cache_timeout=0), name='swagger'),
     re_path(r'^redoc/$', schema_view.with_ui('redoc', cache_timeout=0), name='redoc'),
 
     path('admin/', admin.site.urls),
     path('api/users/', include('users.urls', namespace='users')),
     path('api/tasks/', include('tasks.urls', namespace='tasks')),
+    path('', TemplateView.as_view(template_name='login.html')),
+    path('login/', TemplateView.as_view(template_name='login.html')),
+    path('register/', TemplateView.as_view(template_name='register.html')),
+    path('dashboard/', TemplateView.as_view(template_name='dashboard.html')),
+    path('projects/', TemplateView.as_view(template_name='projects.html')),
+    path('tasks/', TemplateView.as_view(template_name='tasks.html')),
+    path('tasks/<int:id>/', TemplateView.as_view(template_name='task_detail.html')),
 ]
+
 
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
