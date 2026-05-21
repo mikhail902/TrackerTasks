@@ -71,7 +71,6 @@ class TaskViewSet(ModelViewSet):
         old_task = Task.objects.get(pk=self.kwargs.get('pk'))
         task = serializer.save()
 
-        # Логирование изменений
         if old_task.status != task.status:
             TaskHistory.objects.create(
                 task=task, user=self.request.user,
@@ -147,7 +146,6 @@ class TaskCommentView(ListCreateAPIView):
         task = get_object_or_404(Task, pk=self.kwargs.get('task_id'))
         comment = serializer.save(author=self.request.user, task=task)
 
-        # Уведомление создателю
         if task.creator != self.request.user:
             Notification.objects.create(
                 user=task.creator, type='task_comment',

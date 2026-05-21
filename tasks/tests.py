@@ -9,10 +9,8 @@ User = get_user_model()
 class TaskTestCase(APITestCase):
 
     def setUp(self):
-        # Департамент
         self.department = Department.objects.create(name='IT')
 
-        # Пользователи
         self.admin = User.objects.create_user(
             email='admin@test.ru', password='admin123',
             role='admin', department=self.department,
@@ -29,12 +27,10 @@ class TaskTestCase(APITestCase):
             first_name='Employee', last_name='Employov', position='Developer'
         )
 
-        # Проект
         self.project = Project.objects.create(
             name='Test Project', manager=self.manager
         )
 
-        # Задача
         self.task = Task.objects.create(
             title='Test Task',
             description='Test Description',
@@ -50,7 +46,6 @@ class TaskTestCase(APITestCase):
         })
         return response.data['access']
 
-    # --- Аутентификация ---
     def test_register_user(self):
         data = {
             'email': 'new@test.ru',
@@ -71,7 +66,6 @@ class TaskTestCase(APITestCase):
         self.assertIn('access', response.data)
         self.assertIn('refresh', response.data)
 
-    # --- Проекты ---
     def test_create_project_as_manager(self):
         token = self.get_token('manager@test.ru', 'manager123')
         self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {token}')
@@ -92,7 +86,6 @@ class TaskTestCase(APITestCase):
         response = self.client.get('/api/tasks/projects/')
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
-    # --- Задачи ---
     def test_create_task(self):
         token = self.get_token('manager@test.ru', 'manager123')
         self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {token}')
@@ -144,7 +137,6 @@ class TaskTestCase(APITestCase):
         )
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
-    # --- Комментарии ---
     def test_add_comment(self):
         token = self.get_token('employee@test.ru', 'employee123')
         self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {token}')
@@ -163,7 +155,6 @@ class TaskTestCase(APITestCase):
         response = self.client.get(f'/api/tasks/{self.task.id}/comments/')
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
-    # --- Уведомления ---
     def test_notifications(self):
         Notification.objects.create(
             user=self.employee, type='task_assigned',
@@ -184,7 +175,6 @@ class TaskTestCase(APITestCase):
         response = self.client.post(f'/api/tasks/notifications/{notif.id}/read/')
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
-    # --- Права доступа ---
     def test_employee_cannot_delete_task(self):
         token = self.get_token('employee@test.ru', 'employee123')
         self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {token}')

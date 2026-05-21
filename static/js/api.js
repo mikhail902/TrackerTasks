@@ -11,8 +11,14 @@ const api = {
 
         if (response.status === 401) {
             localStorage.removeItem('access');
-            window.location = '/login/';
+            localStorage.removeItem('refresh');
+            window.location.href = '/login/';
             return;
+        }
+
+        if (!response.ok) {
+            const error = await response.json().catch(() => ({}));
+            throw error;
         }
 
         return response.json();
@@ -27,5 +33,5 @@ const api = {
 function logout() {
     localStorage.removeItem('access');
     localStorage.removeItem('refresh');
-    window.location = '/login/';
+    window.location.href = '/login/';
 }

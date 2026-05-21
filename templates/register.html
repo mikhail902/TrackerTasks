@@ -1,49 +1,88 @@
 {% extends 'base.html' %}
-{% block title %}Регистрация{% endblock %}
+{% block title %}Регистрация — Task Tracker{% endblock %}
+
 {% block content %}
-<div class="row justify-content-center">
-    <div class="col-md-6">
-        <div class="card shadow">
-            <div class="card-body">
-                <h3 class="card-title text-center mb-4">Регистрация</h3>
-                <form id="registerForm">
-                    <div class="row">
-                        <div class="col-md-6 mb-3">
-                            <label>Фамилия</label>
-                            <input type="text" name="last_name" class="form-control" required>
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card shadow">
+                <div class="card-body p-4">
+                    <h3 class="card-title text-center mb-4">Регистрация сотрудника</h3>
+                    <form id="registerForm">
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Фамилия *</label>
+                                <input type="text" name="last_name" class="form-control" placeholder="Иванов" required>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Имя *</label>
+                                <input type="text" name="first_name" class="form-control" placeholder="Иван" required>
+                            </div>
                         </div>
-                        <div class="col-md-6 mb-3">
-                            <label>Имя</label>
-                            <input type="text" name="first_name" class="form-control" required>
+                        <div class="mb-3">
+                            <label class="form-label">Отчество</label>
+                            <input type="text" name="middle_name" class="form-control" placeholder="Иванович">
                         </div>
-                    </div>
-                    <div class="mb-3">
-                        <label>Email</label>
-                        <input type="email" name="email" class="form-control" required>
-                    </div>
-                    <div class="mb-3">
-                        <label>Должность</label>
-                        <input type="text" name="position" class="form-control" required>
-                    </div>
-                    <div class="mb-3">
-                        <label>Пароль</label>
-                        <input type="password" name="password" class="form-control" required>
-                    </div>
-                    <button type="submit" class="btn btn-success w-100">Зарегистрироваться</button>
-                </form>
-                <p class="mt-3 text-center">
-                    <a href="/login/">Уже есть аккаунт</a>
-                </p>
+                        <div class="mb-3">
+                            <label class="form-label">Email *</label>
+                            <input type="email" name="email" class="form-control" placeholder="ivanov@company.ru" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Должность *</label>
+                            <input type="text" name="position" class="form-control" placeholder="Разработчик" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Пароль *</label>
+                            <input type="password" name="password" class="form-control" placeholder="Минимум 8 символов" minlength="8" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Подтверждение пароля *</label>
+                            <input type="password" name="password_confirm" class="form-control" placeholder="Повторите пароль" required>
+                        </div>
+                        <div id="registerError" class="alert alert-danger d-none"></div>
+                        <div id="registerSuccess" class="alert alert-success d-none"></div>
+                        <button type="submit" class="btn btn-success w-100 btn-lg">
+                            <i class="bi bi-person-plus"></i> Зарегистрироваться
+                        </button>
+                    </form>
+                    <p class="mt-3 text-center">
+                        Уже есть аккаунт? <a href="/login/">Войти</a>
+                    </p>
+                </div>
             </div>
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block scripts %}
 <script>
 document.getElementById('registerForm').addEventListener('submit', async (e) => {
     e.preventDefault();
-    const data = Object.fromEntries(new FormData(e.target));
-    await api.post('/users/register/', data);
-    window.location = '/login/';
+    const errorDiv = document.getElementById('registerError');
+    const successDiv = document.getElementById('registerSuccess');
+    errorDiv.classList.add('d-none');
+    successDiv.classList.add('d-none');
+
+    const formData = new FormData(e.target);
+    if (formData.get('password') !== formData.get('password_confirm')) {
+        errorDiv.textContent = 'Пароли не совпадают';
+        errorDiv.classList.remove('d-none');
+        return;
+    }
+
+    const data = Object.fromEntries(formData);
+    delete data.password_confirm;
+
+    try {
+        await api.post('/users/register/', data);
+        successDiv.textContent = 'Регистрация успешна! Перенаправление...';
+        successDiv.classList.remove('d-none');
+        setTimeout(() => window.location.href = '/login/', 1500);
+    } catch (err) {
+        errorDiv.textContent = err.detail || 'Ошибка регистрации';
+        errorDiv.classList.remove('d-none');
+    }
 });
 </script>
 {% endblock %}
