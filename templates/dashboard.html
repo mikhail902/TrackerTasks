@@ -2,18 +2,17 @@
 {% block title %}Дашборд — Task Tracker{% endblock %}
 
 {% block content %}
+<!-- Hero-секция -->
 <div class="position-relative overflow-hidden p-3 p-md-5 text-center hero-section text-white">
     <div class="col-md-8 p-lg-5 mx-auto my-5">
         <h1 class="display-3 fw-bold" id="greeting">Доброе утро!</h1>
         <h3 class="fw-normal mb-3" id="greeting-sub">У вас <span id="myTasksCount">0</span> активных задач</h3>
         <div class="d-flex gap-3 justify-content-center lead fw-normal">
             <a class="btn btn-light btn-lg px-4" href="/tasks/">
-                <svg class="bi me-2" width="20" height="20"><use href="#kanban"></use></svg>
-                Мои задачи
+                <i class="bi bi-kanban me-2"></i> Мои задачи
             </a>
             <button class="btn btn-outline-light btn-lg px-4" data-bs-toggle="modal" data-bs-target="#quickTaskModal">
-                <svg class="bi me-2" width="20" height="20"><use href="#check2"></use></svg>
-                Быстрая задача
+                <i class="bi bi-plus-lg me-2"></i> Быстрая задача
             </button>
         </div>
     </div>
@@ -21,101 +20,92 @@
     <div class="product-device product-device-2 shadow-sm d-none d-md-block"></div>
 </div>
 
+<!-- Статистика -->
 <div class="container mt-5">
     <div class="row g-4">
         <div class="col-md-3">
-            <div class="card text-bg-primary h-100">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between">
-                        <h5 class="card-title">Всего задач</h5>
-                        <svg class="bi" width="32" height="32"><use href="#kanban"></use></svg>
-                    </div>
-                    <h2 class="display-6 mt-3" id="statTotal">—</h2>
+            <div class="card text-bg-primary h-100 shadow-sm">
+                <div class="card-body text-center">
+                    <i class="bi bi-kanban display-5"></i>
+                    <h5 class="card-title mt-2">Всего задач</h5>
+                    <h2 class="display-4 fw-bold" id="statTotal">0</h2>
                 </div>
             </div>
         </div>
         <div class="col-md-3">
-            <div class="card text-bg-warning h-100">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between">
-                        <h5 class="card-title">В работе</h5>
-                        <svg class="bi" width="32" height="32"><use href="#sun-fill"></use></svg>
-                    </div>
-                    <h2 class="display-6 mt-3" id="statInProgress">—</h2>
+            <div class="card text-bg-warning h-100 shadow-sm">
+                <div class="card-body text-center">
+                    <i class="bi bi-arrow-repeat display-5"></i>
+                    <h5 class="card-title mt-2">В работе</h5>
+                    <h2 class="display-4 fw-bold" id="statInProgress">0</h2>
                 </div>
             </div>
         </div>
         <div class="col-md-3">
-            <div class="card text-bg-danger h-100">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between">
-                        <h5 class="card-title">Просрочено</h5>
-                        <svg class="bi" width="32" height="32"><use href="#moon-stars-fill"></use></svg>
-                    </div>
-                    <h2 class="display-6 mt-3" id="statOverdue">—</h2>
+            <div class="card text-bg-danger h-100 shadow-sm">
+                <div class="card-body text-center">
+                    <i class="bi bi-exclamation-triangle display-5"></i>
+                    <h5 class="card-title mt-2">Просрочено</h5>
+                    <h2 class="display-4 fw-bold" id="statOverdue">0</h2>
                 </div>
             </div>
         </div>
         <div class="col-md-3">
-            <div class="card text-bg-success h-100">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between">
-                        <h5 class="card-title">Выполнено</h5>
-                        <svg class="bi" width="32" height="32"><use href="#check2"></use></svg>
-                    </div>
-                    <h2 class="display-6 mt-3" id="statDone">—</h2>
+            <div class="card text-bg-success h-100 shadow-sm">
+                <div class="card-body text-center">
+                    <i class="bi bi-check-circle display-5"></i>
+                    <h5 class="card-title mt-2">Выполнено</h5>
+                    <h2 class="display-4 fw-bold" id="statDone">0</h2>
                 </div>
             </div>
         </div>
     </div>
 </div>
 
-<div class="d-md-flex flex-md-equal w-100 my-md-3 ps-md-3">
-    <!-- Мои задачи -->
-    <div class="bg-body-tertiary me-md-3 pt-3 px-3 pt-md-5 px-md-5 text-center overflow-hidden">
-        <div class="my-3 p-3">
-            <h2 class="display-5">Мои задачи</h2>
-            <p class="lead">Активные задачи на этой неделе</p>
-        </div>
-        <div class="bg-body shadow-sm mx-auto text-start" style="width: 90%; border-radius: 21px;">
-            <div id="myTasksList" style="max-height: 400px; overflow-y: auto;">
-                <div class="list-group list-group-flush" id="myTasksContainer">
-                    <div class="text-center py-5 text-muted">Загрузка...</div>
+<!-- Мои задачи + Уведомления -->
+<div class="container mt-5">
+    <div class="row g-4">
+        <div class="col-md-6">
+            <div class="card shadow-sm h-100">
+                <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0"><i class="bi bi-list-check me-2"></i>Мои задачи</h5>
+                    <a href="/tasks/" class="btn btn-sm btn-light">Все задачи</a>
+                </div>
+                <div class="card-body p-0" style="max-height: 400px; overflow-y: auto;">
+                    <div class="list-group list-group-flush" id="myTasksContainer"></div>
                 </div>
             </div>
         </div>
-    </div>
-
-    <div class="bg-body-tertiary me-md-3 pt-3 px-3 pt-md-5 px-md-5 text-center overflow-hidden">
-        <div class="my-3 p-3">
-            <h2 class="display-5">Уведомления</h2>
-            <p class="lead">Последние события</p>
-        </div>
-        <div class="bg-body shadow-sm mx-auto text-start" style="width: 90%; border-radius: 21px;">
-            <div style="max-height: 400px; overflow-y: auto;">
-                <div class="list-group list-group-flush" id="notificationsContainer">
-                    <div class="text-center py-5 text-muted">Загрузка...</div>
+        <div class="col-md-6">
+            <div class="card shadow-sm h-100">
+                <div class="card-header bg-info text-white d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0"><i class="bi bi-bell me-2"></i>Уведомления</h5>
+                    <a href="/notifications/" class="btn btn-sm btn-light">Все</a>
+                </div>
+                <div class="card-body p-0" style="max-height: 400px; overflow-y: auto;">
+                    <div class="list-group list-group-flush" id="notificationsContainer"></div>
                 </div>
             </div>
         </div>
     </div>
 </div>
 
+<!-- Модалка быстрой задачи -->
 <div class="modal fade" id="quickTaskModal" tabindex="-1">
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title">Быстрая задача</h5>
+                <h5 class="modal-title"><i class="bi bi-lightning-charge me-2"></i>Быстрая задача</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
                 <form id="quickTaskForm">
                     <div class="mb-3">
-                        <label>Название</label>
-                        <input type="text" name="title" class="form-control" placeholder="Что нужно сделать?" required>
+                        <label class="form-label">Что нужно сделать?</label>
+                        <input type="text" name="title" class="form-control" placeholder="Например: Отправить отчёт" required>
                     </div>
                     <div class="mb-3">
-                        <label>Приоритет</label>
+                        <label class="form-label">Приоритет</label>
                         <select name="priority" class="form-select">
                             <option value="low">Низкий</option>
                             <option value="medium" selected>Средний</option>
@@ -127,13 +117,14 @@
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
-                <button type="button" class="btn btn-primary" onclick="quickCreateTask()">Создать</button>
+                <button type="button" class="btn btn-primary" onclick="quickCreateTask()">
+                    <i class="bi bi-check-lg me-1"></i> Создать
+                </button>
             </div>
         </div>
     </div>
 </div>
 {% endblock %}
-
 {% block scripts %}
 <script>
 const hour = new Date().getHours();
@@ -141,67 +132,122 @@ const greeting = hour < 6 ? 'Доброй ночи' : hour < 12 ? 'Доброе 
 document.getElementById('greeting').textContent = greeting + '!';
 
 async function loadDashboard() {
+    // Статистика
+    document.getElementById('statTotal').textContent = '0';
+    document.getElementById('statInProgress').textContent = '0';
+    document.getElementById('statDone').textContent = '0';
+    document.getElementById('statOverdue').textContent = '0';
+    document.getElementById('myTasksCount').textContent = '0';
+    document.getElementById('greeting-sub').innerHTML = 'У вас <span id="myTasksCount">0</span> активных задач';
+
+    const tasksContainer = document.getElementById('myTasksContainer');
+    const notifContainer = document.getElementById('notificationsContainer');
+
+    // Задачи
     try {
         const tasks = await api.get('/tasks/assigned/');
         const results = tasks.results || [];
 
         document.getElementById('myTasksCount').textContent = results.length;
         document.getElementById('greeting-sub').innerHTML = `У вас <span id="myTasksCount">${results.length}</span> активных задач`;
-
         document.getElementById('statTotal').textContent = results.length;
         document.getElementById('statInProgress').textContent = results.filter(t => t.status === 'in_progress').length;
         document.getElementById('statDone').textContent = results.filter(t => t.status === 'done').length;
         document.getElementById('statOverdue').textContent = results.filter(t => t.is_overdue).length;
 
-        const container = document.getElementById('myTasksContainer');
-        container.innerHTML = results.slice(0, 5).map(t => `
-            <a href="/tasks/${t.id}/" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
-                <div>
-                    <strong>${t.title}</strong>
-                    <br><small class="text-muted">${t.project_name || 'Без проекта'}</small>
-                </div>
-                <span class="badge bg-${t.priority === 'critical' ? 'danger' : t.priority === 'high' ? 'warning' : 'secondary'}">${t.priority}</span>
-            </a>
-        `).join('');
-
-        const notifs = await api.get('/notifications/');
-        const notifContainer = document.getElementById('notificationsContainer');
-        notifContainer.innerHTML = notifs.results.slice(0, 5).map(n => `
-            <div class="list-group-item ${n.is_read ? '' : 'list-group-item-warning'}">
-                <div class="d-flex w-100 justify-content-between">
-                    <small>${new Date(n.created_at).toLocaleString()}</small>
-                    ${!n.is_read ? '<span class="badge bg-danger">Новое</span>' : ''}
-                </div>
-                <p class="mb-1">${n.message}</p>
-            </div>
-        `).join('');
-
-        const unread = notifs.results.filter(n => !n.is_read).length;
-        const badge = document.getElementById('notif-badge');
-        if (unread > 0) {
-            badge.textContent = unread;
-            badge.style.display = 'inline';
+        if (results.length === 0) {
+            tasksContainer.innerHTML = `
+                <div class="text-center py-5">
+                    <i class="bi bi-inbox display-3 text-muted"></i>
+                    <h5 class="text-muted mt-3">У вас нет активных задач</h5>
+                    <p class="text-muted small">Создайте первую задачу</p>
+                    <button class="btn btn-primary btn-sm mt-2" data-bs-toggle="modal" data-bs-target="#quickTaskModal">
+                        <i class="bi bi-plus-lg"></i> Создать задачу
+                    </button>
+                </div>`;
+        } else {
+            tasksContainer.innerHTML = results.slice(0, 5).map(t => `
+                <a href="/tasks/${t.id}/" class="list-group-item list-group-item-action">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <strong>${t.title}</strong>
+                            <br><small class="text-muted">${t.project_name || 'Без проекта'}</small>
+                        </div>
+                        <span class="badge rounded-pill bg-${t.priority === 'critical' ? 'dark' : t.priority === 'high' ? 'danger' : t.priority === 'medium' ? 'warning' : 'secondary'}">${t.priority}</span>
+                    </div>
+                </a>
+            `).join('');
         }
     } catch (e) {
-        console.error(e);
+        console.error('Tasks error:', e);
+        tasksContainer.innerHTML = `
+            <div class="text-center py-5">
+                <i class="bi bi-exclamation-circle display-3 text-danger"></i>
+                <h5 class="text-muted mt-3">Ошибка загрузки задач</h5>
+                <p class="text-muted small">Проверьте подключение</p>
+            </div>`;
+    }
+
+    // Уведомления
+    try {
+        const notifs = await api.get('/tasks/notifications/');
+        const notifResults = notifs.results || [];
+
+        if (notifResults.length === 0) {
+            notifContainer.innerHTML = `
+                <div class="text-center py-5">
+                    <i class="bi bi-bell-slash display-3 text-muted"></i>
+                    <h5 class="text-muted mt-3">Нет новых уведомлений</h5>
+                    <p class="text-muted small">Здесь будут отображаться уведомления</p>
+                </div>`;
+        } else {
+            notifContainer.innerHTML = notifResults.slice(0, 5).map(n => `
+                <div class="list-group-item ${n.is_read ? '' : 'list-group-item-warning'}">
+                    <div class="d-flex justify-content-between align-items-start mb-1">
+                        <small class="text-muted"><i class="bi bi-clock me-1"></i>${new Date(n.created_at).toLocaleString()}</small>
+                        ${!n.is_read ? '<span class="badge bg-danger rounded-pill">Новое</span>' : ''}
+                    </div>
+                    <p class="mb-1">${n.message}</p>
+                    ${n.task_title ? `<a href="/tasks/${n.task}/" class="small text-primary">→ ${n.task_title}</a>` : ''}
+                </div>
+            `).join('');
+        }
+
+        const unread = notifResults.filter(n => !n.is_read).length;
+        const badge = document.getElementById('notif-badge');
+        if (badge) {
+            badge.textContent = unread;
+            badge.style.display = unread > 0 ? 'inline' : 'none';
+        }
+    } catch (e) {
+        console.error('Notifications error:', e);
+        notifContainer.innerHTML = `
+            <div class="text-center py-5">
+                <i class="bi bi-exclamation-circle display-3 text-danger"></i>
+                <h5 class="text-muted mt-3">Ошибка загрузки уведомлений</h5>
+                <p class="text-muted small">Проверьте подключение</p>
+            </div>`;
     }
 }
 
 async function quickCreateTask() {
-    const form = document.getElementById('quickTaskForm');
-    const data = Object.fromEntries(new FormData(form));
-    await api.post('/tasks/', data);
-    location.reload();
-}
-
-async function loadProfile() {
+    const btn = document.querySelector('#quickTaskModal .btn-primary');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Создание...';
     try {
-        const profile = await api.get('/users/me/');
-        document.getElementById('nav-username').textContent = `${profile.last_name} ${profile.first_name}`;
-    } catch (e) {}
+        const form = document.getElementById('quickTaskForm');
+        const data = Object.fromEntries(new FormData(form));
+        await api.post('/tasks/', data);
+        bootstrap.Modal.getInstance(document.getElementById('quickTaskModal')).hide();
+        document.getElementById('quickTaskForm').reset();
+        loadDashboard();
+    } catch (e) {
+        alert('Ошибка создания задачи');
+    }
+    btn.disabled = false;
+    btn.innerHTML = '<i class="bi bi-check-lg me-1"></i> Создать';
 }
 
 loadDashboard();
-loadProfile();
 </script>
 {% endblock %}

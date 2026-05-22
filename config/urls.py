@@ -16,7 +16,6 @@ schema_view = get_schema_view(
 urlpatterns = [
     re_path(r'^swagger/$', schema_view.with_ui('swagger'), name='swagger'),
     re_path(r'^redoc/$', schema_view.with_ui('redoc'), name='redoc'),
-
     path('admin/', admin.site.urls),
     path('api/users/', include('users.urls')),
     path('api/tasks/', include('tasks.urls')),
