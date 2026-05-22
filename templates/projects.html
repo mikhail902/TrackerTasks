@@ -1,0 +1,187 @@
+{% extends 'base.html' %}
+{% block title %}Проекты — Task Tracker{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center">
+        <h2><i class="bi bi-folder"></i> Проекты</h2>
+        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#projectModal" id="addProjectBtn">
+            <i class="bi bi-plus-lg"></i> Создать проект
+        </button>
+    </div>
+
+    <div class="row mt-4" id="projectsContainer">
+        <div class="col-12 text-center py-5 text-muted">Загрузка...</div>
+    </div>
+</div>
+
+<div class="modal fade" id="projectModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="projectModalTitle">Новый проект</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="projectForm">
+                    <input type="hidden" name="id" id="projectId">
+                    <div class="mb-3">
+                        <label class="form-label">Название *</label>
+                        <input type="text" name="name" class="form-control" id="projectName" placeholder="Название проекта" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Описание</label>
+                        <textarea name="description" class="form-control" id="projectDescription" rows="3" placeholder="Описание проекта"></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Дедлайн</label>
+                        <input type="datetime-local" name="deadline" class="form-control" id="projectDeadline">
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                <button type="button" class="btn btn-primary" id="projectSubmitBtn" onclick="saveProject()">Создать</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="deleteModal" tabindex="-1">
+    <div class="modal-dialog modal-sm">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Удалить проект?</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>Все задачи проекта будут удалены. Действие необратимо.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                <button type="button" class="btn btn-danger" id="confirmDeleteBtn">Удалить</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let deleteProjectId = null;
+
+async function loadProjects() {
+    try {
+        const data = await api.get('/tasks/projects/');
+        const container = document.getElementById('projectsContainer');
+
+        if (!data.results || data.results.length === 0) {
+            container.innerHTML = `
+                <div class="col-12 text-center py-5">
+                    <i class="bi bi-folder2-open display-1 text-muted"></i>
+                    <h4 class="text-muted mt-3">Нет проектов</h4>
+                    <p class="text-muted">Создайте первый проект</p>
+                </div>`;
+            return;
+        }
+
+        container.innerHTML = data.results.map(p => `
+            <div class="col-md-6 col-lg-4 mb-4">
+                <div class="card h-100 shadow-sm ${p.status === 'completed' ? 'border-success' : p.status === 'cancelled' ? 'border-danger' : ''}">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <h5 class="card-title">
+                                <a href="/tasks/?project=${p.id}" class="text-decoration-none">${p.name}</a>
+                            </h5>
+                            <span class="badge bg-${p.status === 'active' ? 'primary' : p.status === 'completed' ? 'success' : 'secondary'}">${p.status}</span>
+                        </div>
+                        <p class="card-text text-muted">${p.description || 'Нет описания'}</p>
+                        <div class="d-flex justify-content-between align-items-center">
+                            <small class="text-muted">
+                                <i class="bi bi-person"></i> ${p.manager?.full_name || '—'}
+                            </small>
+                            <small class="text-muted">
+                                <i class="bi bi-list-check"></i> ${p.tasks_count || 0} задач
+                            </small>
+                        </div>
+                        <div class="progress mt-2" style="height: 5px;">
+                            <div class="progress-bar bg-success" style="width: ${p.tasks_count ? (p.completed_tasks_count / p.tasks_count * 100) : 0}%"></div>
+                        </div>
+                        <small class="text-muted">${p.completed_tasks_count || 0} из ${p.tasks_count || 0} выполнено</small>
+                    </div>
+                    <div class="card-footer bg-transparent">
+                        <div class="d-flex gap-2">
+                            <button class="btn btn-sm btn-outline-primary" onclick="editProject(${p.id}, '${p.name}', '${p.description || ''}', '${p.deadline || ''}')">
+                                <i class="bi bi-pencil"></i>
+                            </button>
+                            <a href="/tasks/?project=${p.id}" class="btn btn-sm btn-outline-secondary">
+                                <i class="bi bi-list-task"></i> Задачи
+                            </a>
+                            <button class="btn btn-sm btn-outline-danger ms-auto" onclick="showDeleteModal(${p.id})">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `).join('');
+    } catch (e) {
+        console.error(e);
+    }
+}
+
+function editProject(id, name, description, deadline) {
+    document.getElementById('projectModalTitle').textContent = 'Редактировать проект';
+    document.getElementById('projectSubmitBtn').textContent = 'Сохранить';
+    document.getElementById('projectId').value = id;
+    document.getElementById('projectName').value = name;
+    document.getElementById('projectDescription').value = description;
+    if (deadline) {
+        document.getElementById('projectDeadline').value = deadline.slice(0, 16);
+    }
+    new bootstrap.Modal(document.getElementById('projectModal')).show();
+}
+
+document.getElementById('addProjectBtn').addEventListener('click', () => {
+    document.getElementById('projectModalTitle').textContent = 'Новый проект';
+    document.getElementById('projectSubmitBtn').textContent = 'Создать';
+    document.getElementById('projectForm').reset();
+    document.getElementById('projectId').value = '';
+});
+
+async function saveProject() {
+    const form = document.getElementById('projectForm');
+    const data = Object.fromEntries(new FormData(form));
+    const id = data.id;
+    delete data.id;
+
+    try {
+        if (id) {
+            await api.patch(`/tasks/projects/${id}/`, data);
+        } else {
+            await api.post('/tasks/projects/', data);
+        }
+        bootstrap.Modal.getInstance(document.getElementById('projectModal')).hide();
+        loadProjects();
+    } catch (e) {
+        alert('Ошибка сохранения');
+    }
+}
+
+function showDeleteModal(id) {
+    deleteProjectId = id;
+    new bootstrap.Modal(document.getElementById('deleteModal')).show();
+}
+
+document.getElementById('confirmDeleteBtn').addEventListener('click', async () => {
+    if (deleteProjectId) {
+        await api.delete(`/tasks/projects/${deleteProjectId}/`);
+        bootstrap.Modal.getInstance(document.getElementById('deleteModal')).hide();
+        deleteProjectId = null;
+        loadProjects();
+    }
+});
+
+loadProjects();
+</script>
+{% endblock %}
