@@ -15,61 +15,56 @@
         </div>
     </div>
 
-    <div class="kanban-board d-flex gap-3 overflow-auto pb-3" id="kanbanBoard">
+    <div id="emptyState" class="text-center py-5 d-none">
+        <i class="bi bi-inbox display-1 text-muted"></i>
+        <h3 class="text-muted mt-3">Нет задач</h3>
+        <p class="text-muted">Создайте первую задачу для этого проекта</p>
+        <button class="btn btn-primary mt-2" data-bs-toggle="modal" data-bs-target="#taskModal" onclick="resetTaskForm()">
+            <i class="bi bi-plus-lg"></i> Создать задачу
+        </button>
+    </div>
 
-        <div class="kanban-column card" style="min-width: 300px; max-width: 350px;">
-            <div class="card-header bg-secondary text-white d-flex justify-content-between">
-                <strong>Бэклог</strong>
+    <!-- Канбан-доска -->
+    <div class="kanban-board d-flex gap-3 overflow-auto pb-3" id="kanbanBoard">
+        <div class="kanban-column card shadow-sm">
+            <div class="card-header bg-secondary text-white d-flex justify-content-between align-items-center">
+                <strong><i class="bi bi-archive me-1"></i>Бэклог</strong>
                 <span class="badge bg-light text-dark" id="countBacklog">0</span>
             </div>
-            <div class="card-body" id="backlog" style="min-height: 200px; max-height: 70vh; overflow-y: auto;">
-                <div class="text-center py-3 text-muted">Загрузка...</div>
-            </div>
+            <div class="card-body p-2" id="backlog" style="min-height: 200px; max-height: 70vh; overflow-y: auto;"></div>
         </div>
-
-        <div class="kanban-column card" style="min-width: 300px; max-width: 350px;">
-            <div class="card-header bg-info text-white d-flex justify-content-between">
-                <strong>К выполнению</strong>
+        <div class="kanban-column card shadow-sm">
+            <div class="card-header bg-info text-white d-flex justify-content-between align-items-center">
+                <strong><i class="bi bi-list-task me-1"></i>К выполнению</strong>
                 <span class="badge bg-light text-dark" id="countTodo">0</span>
             </div>
-            <div class="card-body" id="todo" style="min-height: 200px; max-height: 70vh; overflow-y: auto;">
-                <div class="text-center py-3 text-muted">Загрузка...</div>
-            </div>
+            <div class="card-body p-2" id="todo" style="min-height: 200px; max-height: 70vh; overflow-y: auto;"></div>
         </div>
-
-        <div class="kanban-column card" style="min-width: 300px; max-width: 350px;">
-            <div class="card-header bg-warning text-white d-flex justify-content-between">
-                <strong>В работе</strong>
-                <span class="badge bg-light text-dark" id="countInProgress">0</span>
+        <div class="kanban-column card shadow-sm">
+            <div class="card-header bg-warning text-dark d-flex justify-content-between align-items-center">
+                <strong><i class="bi bi-arrow-repeat me-1"></i>В работе</strong>
+                <span class="badge bg-dark text-white" id="countInProgress">0</span>
             </div>
-            <div class="card-body" id="in_progress" style="min-height: 200px; max-height: 70vh; overflow-y: auto;">
-                <div class="text-center py-3 text-muted">Загрузка...</div>
-            </div>
+            <div class="card-body p-2" id="in_progress" style="min-height: 200px; max-height: 70vh; overflow-y: auto;"></div>
         </div>
-
-        <div class="kanban-column card" style="min-width: 300px; max-width: 350px;">
-            <div class="card-header bg-primary text-white d-flex justify-content-between">
-                <strong>На проверке</strong>
+        <div class="kanban-column card shadow-sm">
+            <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                <strong><i class="bi bi-eye me-1"></i>На проверке</strong>
                 <span class="badge bg-light text-dark" id="countReview">0</span>
             </div>
-            <div class="card-body" id="review" style="min-height: 200px; max-height: 70vh; overflow-y: auto;">
-                <div class="text-center py-3 text-muted">Загрузка...</div>
-            </div>
+            <div class="card-body p-2" id="review" style="min-height: 200px; max-height: 70vh; overflow-y: auto;"></div>
         </div>
-
-        <div class="kanban-column card" style="min-width: 300px; max-width: 350px;">
-            <div class="card-header bg-success text-white d-flex justify-content-between">
-                <strong>Выполнено</strong>
+        <div class="kanban-column card shadow-sm">
+            <div class="card-header bg-success text-white d-flex justify-content-between align-items-center">
+                <strong><i class="bi bi-check-circle me-1"></i>Выполнено</strong>
                 <span class="badge bg-light text-dark" id="countDone">0</span>
             </div>
-            <div class="card-body" id="done" style="min-height: 200px; max-height: 70vh; overflow-y: auto;">
-                <div class="text-center py-3 text-muted">Загрузка...</div>
-            </div>
+            <div class="card-body p-2" id="done" style="min-height: 200px; max-height: 70vh; overflow-y: auto;"></div>
         </div>
     </div>
 </div>
 
-
+<!-- Модалка задачи -->
 <div class="modal fade" id="taskModal" tabindex="-1">
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
@@ -83,11 +78,11 @@
                     <div class="row">
                         <div class="col-md-8 mb-3">
                             <label class="form-label">Название *</label>
-                            <input type="text" name="title" class="form-control" id="taskTitle" required>
+                            <input type="text" name="title" class="form-control" required>
                         </div>
                         <div class="col-md-4 mb-3">
                             <label class="form-label">Приоритет</label>
-                            <select name="priority" class="form-select" id="taskPriority">
+                            <select name="priority" class="form-select">
                                 <option value="low">Низкий</option>
                                 <option value="medium" selected>Средний</option>
                                 <option value="high">Высокий</option>
@@ -97,7 +92,7 @@
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Описание</label>
-                        <textarea name="description" class="form-control" id="taskDescription" rows="4"></textarea>
+                        <textarea name="description" class="form-control" rows="4"></textarea>
                     </div>
                     <div class="row">
                         <div class="col-md-6 mb-3">
@@ -106,7 +101,7 @@
                         </div>
                         <div class="col-md-6 mb-3">
                             <label class="form-label">Дедлайн</label>
-                            <input type="datetime-local" name="deadline" class="form-control" id="taskDeadline">
+                            <input type="datetime-local" name="deadline" class="form-control">
                         </div>
                     </div>
                 </form>
@@ -122,61 +117,66 @@
 
 {% block scripts %}
 <script>
-const STATUS_MAP = {
-    'backlog': 'Бэклог',
-    'todo': 'К выполнению',
-    'in_progress': 'В работе',
-    'review': 'На проверке',
-    'done': 'Выполнено'
-};
 const PRIORITY_COLORS = { low: 'secondary', medium: 'warning', high: 'danger', critical: 'dark' };
+const STATUSES = ['backlog', 'todo', 'in_progress', 'review', 'done'];
 
 async function loadBoard() {
     const projectId = document.getElementById('projectFilter').value;
     let url = '/tasks/';
     if (projectId) url += `?project=${projectId}`;
 
-    const data = await api.get(url);
-    const tasks = data.results || [];
+    try {
+        const data = await api.get(url);
+        const tasks = data.results || [];
+        const totalTasks = tasks.length;
 
-    ['backlog', 'todo', 'in_progress', 'review', 'done'].forEach(status => {
-        const container = document.getElementById(status);
-        const filtered = tasks.filter(t => t.status === status);
-        document.getElementById(`count${status.charAt(0).toUpperCase() + status.slice(1).replace('_', '')}`).textContent = filtered.length;
+        const board = document.getElementById('kanbanBoard');
+        const emptyState = document.getElementById('emptyState');
 
-        container.innerHTML = filtered.map(t => `
-            <div class="card mb-2 task-card border-${t.priority === 'critical' ? 'dark' : t.priority === 'high' ? 'danger' : ''}"
-                 draggable="true"
-                 ondragstart="drag(event)"
-                 id="task-${t.id}"
-                 data-task-id="${t.id}">
-                <div class="card-body p-2">
-                    <div class="d-flex justify-content-between align-items-start">
-                        <a href="/tasks/${t.id}/" class="text-decoration-none small fw-bold">${t.title}</a>
-                        <span class="badge bg-${PRIORITY_COLORS[t.priority]}">${t.priority}</span>
+        if (totalTasks === 0) {
+            board.classList.add('d-none');
+            emptyState.classList.remove('d-none');
+            return;
+        }
+
+        board.classList.remove('d-none');
+        emptyState.classList.add('d-none');
+
+        STATUSES.forEach(status => {
+            const container = document.getElementById(status);
+            const filtered = tasks.filter(t => t.status === status);
+            const countId = 'count' + status.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join('');
+            document.getElementById(countId).textContent = filtered.length;
+
+            container.innerHTML = filtered.map(t => `
+                <div class="card mb-2 task-card border-start border-${t.priority === 'critical' ? 'dark' : t.priority === 'high' ? 'danger' : t.priority === 'medium' ? 'warning' : 'secondary'} border-3"
+                     draggable="true" ondragstart="drag(event)" id="task-${t.id}" data-task-id="${t.id}">
+                    <div class="card-body p-2">
+                        <div class="d-flex justify-content-between align-items-start mb-1">
+                            <a href="/tasks/${t.id}/" class="small fw-bold text-decoration-none">${t.title}</a>
+                            <span class="badge rounded-pill bg-${PRIORITY_COLORS[t.priority]}">${t.priority}</span>
+                        </div>
+                        <small class="text-muted">${t.assignee?.full_name || 'Не назначена'}</small>
+                        ${t.deadline ? `<div class="mt-1"><small class="${t.is_overdue ? 'text-danger' : 'text-muted'}"><i class="bi bi-clock me-1"></i>${new Date(t.deadline).toLocaleDateString()}</small></div>` : ''}
                     </div>
-                    <small class="text-muted">${t.assignee?.full_name || 'Не назначена'}</small>
-                    ${t.deadline ? `<br><small class="${t.is_overdue ? 'text-danger' : 'text-muted'}"><i class="bi bi-clock"></i> ${new Date(t.deadline).toLocaleDateString()}</small>` : ''}
                 </div>
-            </div>
-        `).join('');
-    });
+            `).join('');
+        });
+    } catch (e) {
+        console.error(e);
+    }
 }
 
 async function loadProjects() {
-    const data = await api.get('/tasks/projects/');
-    const select = document.getElementById('projectFilter');
-    const taskSelect = document.getElementById('taskProject');
-    const options = '<option value="">Все проекты</option>' +
-        data.results.map(p => `<option value="${p.id}">${p.name}</option>`).join('');
-    select.innerHTML = options;
-    taskSelect.innerHTML = '<option value="">Без проекта</option>' +
-        data.results.map(p => `<option value="${p.id}">${p.name}</option>`).join('');
-
-    const urlParams = new URLSearchParams(window.location.search);
-    if (urlParams.get('project')) {
-        select.value = urlParams.get('project');
-    }
+    try {
+        const data = await api.get('/tasks/projects/');
+        const select = document.getElementById('projectFilter');
+        const taskSelect = document.getElementById('taskProject');
+        select.innerHTML = '<option value="">Все проекты</option>' + data.results.map(p => `<option value="${p.id}">${p.name}</option>`).join('');
+        taskSelect.innerHTML = '<option value="">Без проекта</option>' + data.results.map(p => `<option value="${p.id}">${p.name}</option>`).join('');
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.get('project')) select.value = urlParams.get('project');
+    } catch (e) {}
 }
 
 function resetTaskForm() {
@@ -192,13 +192,9 @@ async function saveTask() {
     delete data.id;
     if (!data.project) delete data.project;
     if (!data.deadline) delete data.deadline;
-
     try {
-        if (id) {
-            await api.patch(`/tasks/${id}/`, data);
-        } else {
-            await api.post('/tasks/', data);
-        }
+        if (id) await api.patch(`/tasks/${id}/`, data);
+        else await api.post('/tasks/', data);
         bootstrap.Modal.getInstance(document.getElementById('taskModal')).hide();
         loadBoard();
     } catch (e) {
@@ -206,24 +202,26 @@ async function saveTask() {
     }
 }
 
-// Drag & Drop
 function allowDrop(ev) { ev.preventDefault(); }
-
 function drag(ev) {
-    ev.dataTransfer.setData("text", ev.target.closest('.task-card').dataset.taskId);
+    const card = ev.target.closest('.task-card');
+    if (card) ev.dataTransfer.setData("text", card.dataset.taskId);
 }
-
 async function drop(ev, newStatus) {
     ev.preventDefault();
     const taskId = ev.dataTransfer.getData("text");
-    await api.patch(`/tasks/${taskId}/status/`, { status: newStatus });
-    loadBoard();
+    if (taskId) {
+        await api.patch(`/tasks/${taskId}/status/`, { status: newStatus });
+        loadBoard();
+    }
 }
 
-['backlog', 'todo', 'in_progress', 'review', 'done'].forEach(status => {
-    const el = document.getElementById(status);
-    el.addEventListener('dragover', allowDrop);
-    el.addEventListener('drop', (e) => drop(e, status));
+STATUSES.forEach(s => {
+    const el = document.getElementById(s);
+    if (el) {
+        el.addEventListener('dragover', allowDrop);
+        el.addEventListener('drop', e => drop(e, s));
+    }
 });
 
 loadProjects().then(() => loadBoard());
