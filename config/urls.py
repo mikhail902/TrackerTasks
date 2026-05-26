@@ -12,16 +12,21 @@ schema_view = get_schema_view(
     public=True,
     permission_classes=[permissions.AllowAny],
 )
-
 urlpatterns = [
     re_path(r'^swagger/$', schema_view.with_ui('swagger'), name='swagger'),
     re_path(r'^redoc/$', schema_view.with_ui('redoc'), name='redoc'),
+
     path('admin/', admin.site.urls),
     path('api/users/', include('users.urls')),
     path('api/tasks/', include('tasks.urls')),
+
+    # Публичные
     path('', TemplateView.as_view(template_name='login.html')),
     path('login/', TemplateView.as_view(template_name='login.html')),
     path('register/', TemplateView.as_view(template_name='register.html')),
+
+    # Приватные
+    path('home/', TemplateView.as_view(template_name='home.html')),
     path('dashboard/', TemplateView.as_view(template_name='dashboard.html')),
     path('profile/', TemplateView.as_view(template_name='profile.html')),
     path('projects/', TemplateView.as_view(template_name='projects.html')),

@@ -4,7 +4,7 @@ from .views import (
     ProjectViewSet, TaskViewSet,
     TaskCommentView, TaskHistoryView,
     NotificationView, NotificationReadView,
-    TimeLogView
+    TimeLogView, BusyEmployeesView, ImportantTasksView
 )
 
 app_name = 'tasks'
@@ -19,6 +19,8 @@ urlpatterns = [
     path('<int:task_id>/comments/', TaskCommentView.as_view(), name='task-comments'),
     path('<int:task_id>/history/', TaskHistoryView.as_view(), name='task-history'),
     path('<int:task_id>/timelogs/', TimeLogView.as_view(), name='task-timelogs'),
+    path('busy-employees/', BusyEmployeesView.as_view(), name='busy-employees'),
+    path('important-tasks/', ImportantTasksView.as_view(), name='important-tasks'),
 ]
 
 urlpatterns += router.urls

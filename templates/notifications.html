@@ -1,92 +1,129 @@
 {% extends 'base.html' %}
+{% load static %}
+
 {% block title %}Уведомления — Task Tracker{% endblock %}
 
 {% block content %}
-<div class="container mt-4">
-    <h2><i class="bi bi-bell"></i> Уведомления</h2>
 
-    <div class="d-flex gap-2 mt-3 mb-4">
-        <button class="btn btn-sm btn-outline-primary active" onclick="filterNotifs('all', this)">Все</button>
-        <button class="btn btn-sm btn-outline-primary" onclick="filterNotifs('unread', this)">Непрочитанные</button>
-        <button class="btn btn-sm btn-outline-success" onclick="markAllRead()">Прочитать все</button>
+<section class="page">
+
+    <div class="page-header">
+
+        <div>
+            <h1>Уведомления</h1>
+            <p>Последние события системы</p>
+        </div>
+
+        <div class="d-flex gap-2">
+            <button class="btn btn-outline btn-sm active" id="btnAll" onclick="filterNotifs('all')">Все</button>
+            <button class="btn btn-outline btn-sm" id="btnUnread" onclick="filterNotifs('unread')">Непрочитанные</button>
+            <button class="btn btn-primary btn-sm" onclick="markAllRead()">Прочитать все</button>
+        </div>
+
     </div>
 
-    <div class="list-group" id="notificationsList">
-        <div class="text-center py-5">Загрузка...</div>
+    <div class="notifications-list" id="notificationsList">
+        <p style="color:#6b7280;text-align:center;padding:40px;">Загрузка...</p>
     </div>
 
-    <nav class="mt-3" id="notifPagination"></nav>
-</div>
+</section>
+
 {% endblock %}
 
 {% block scripts %}
 <script>
+let allNotifs = [];
 let currentFilter = 'all';
-let currentPage = 1;
 
-async function loadNotifications(page = 1) {
-    currentPage = page;
-    const data = await api.get(`/tasks/notifications/?page=${page}`);
-    const container = document.getElementById('notificationsList');
-    let notifs = data.results || [];
+async function loadNotifications() {
+    try {
+        const data = await api.get('/tasks/notifications/');
+        allNotifs = data.results || [];
+        renderNotifs();
 
-    if (currentFilter === 'unread') {
-        notifs = notifs.filter(n => !n.is_read);
+        // Обновить бейдж в навбаре
+        const unread = allNotifs.filter(n => !n.is_read).length;
+        const badge = document.getElementById('notif-badge');
+        if (badge) {
+            badge.textContent = unread;
+            badge.style.display = unread > 0 ? 'inline' : 'none';
+        }
+    } catch(e) {
+        document.getElementById('notificationsList').innerHTML = '<p style="color:#6b7280;text-align:center;padding:40px;">Ошибка загрузки</p>';
     }
+}
 
-    if (notifs.length === 0) {
+function filterNotifs(filter) {
+    currentFilter = filter;
+    document.getElementById('btnAll').classList.toggle('active', filter === 'all');
+    document.getElementById('btnUnread').classList.toggle('active', filter === 'unread');
+    renderNotifs();
+}
+
+function renderNotifs() {
+    let filtered = currentFilter === 'unread' ? allNotifs.filter(n => !n.is_read) : allNotifs;
+    const container = document.getElementById('notificationsList');
+
+    if (filtered.length === 0) {
         container.innerHTML = `
-            <div class="text-center py-5">
-                <i class="bi bi-bell-slash display-1 text-muted"></i>
-                <h5 class="text-muted mt-3">Нет уведомлений</h5>
+            <div style="text-align:center;padding:60px 20px;">
+                <div style="font-size:48px;margin-bottom:16px;">🔔</div>
+                <h3 style="color:#6b7280;">Нет уведомлений</h3>
+                <p style="color:#9ca3af;">${currentFilter === 'unread' ? 'Все уведомления прочитаны' : 'Здесь будут появляться уведомления'}</p>
             </div>`;
         return;
     }
 
-    container.innerHTML = notifs.map(n => `
-        <div class="list-group-item ${n.is_read ? '' : 'list-group-item-warning'} d-flex justify-content-between align-items-center">
-            <div>
-                <div class="d-flex gap-2 align-items-center">
-                    ${!n.is_read ? '<span class="badge bg-danger">Новое</span>' : ''}
-                    <small class="text-muted">${new Date(n.created_at).toLocaleString()}</small>
+    container.innerHTML = filtered.map(n => `
+        <div class="notification-card" style="${n.is_read ? '' : 'border-left: 3px solid #4f46e5;'}">
+            <div class="notification-dot" style="background:${n.is_read ? '#d1d5db' : '#4f46e5'};"></div>
+            <div style="flex:1;">
+                <div style="display:flex;justify-content:space-between;align-items:start;">
+                    <h4 style="margin:0;">${getNotificationTitle(n.type)}</h4>
+                    ${!n.is_read ? `<button class="btn btn-outline btn-sm" onclick="markRead(${n.id})" style="padding:6px 12px;font-size:12px;">Прочитано</button>` : ''}
                 </div>
-                <p class="mb-1 mt-1">${n.message}</p>
-                ${n.task_title ? `<a href="/tasks/${n.task}/" class="small">${n.task_title}</a>` : ''}
-            </div>
-            <div>
-                ${!n.is_read ? `<button class="btn btn-sm btn-outline-primary" onclick="markRead(${n.id})"><i class="bi bi-check2"></i></button>` : ''}
+                <p style="margin:4px 0 0 0;">${n.message}</p>
+                ${n.task_title ? `<a href="/tasks/${n.task}/" style="color:#4f46e5;font-size:14px;">→ ${n.task_title}</a>` : ''}
+                <small style="color:#9ca3af;">${formatDate(n.created_at)}</small>
             </div>
         </div>
     `).join('');
-
-    const pagDiv = document.getElementById('notifPagination');
-    pagDiv.innerHTML = '';
-    if (data.count > 20) {
-        const totalPages = Math.ceil(data.count / 20);
-        for (let i = 1; i <= totalPages; i++) {
-            pagDiv.innerHTML += `<button class="btn btn-sm ${i === currentPage ? 'btn-primary' : 'btn-outline-primary'} me-1" onclick="loadNotifications(${i})">${i}</button>`;
-        }
-    }
 }
 
-function filterNotifs(filter, btn) {
-    document.querySelectorAll('#notificationsList + div button').forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
-    currentFilter = filter;
-    loadNotifications(currentPage);
+function getNotificationTitle(type) {
+    const titles = {
+        'task_assigned': '📋 Новая задача',
+        'task_status': '🔄 Статус изменён',
+        'task_comment': '💬 Новый комментарий',
+        'deadline_soon': '⏰ Дедлайн приближается',
+        'mention': '📢 Упоминание'
+    };
+    return titles[type] || 'Уведомление';
+}
+
+function formatDate(dateStr) {
+    const d = new Date(dateStr);
+    const now = new Date();
+    const diff = now - d;
+    if (diff < 60000) return 'Только что';
+    if (diff < 3600000) return Math.floor(diff/60000) + ' мин назад';
+    if (diff < 86400000) return Math.floor(diff/3600000) + ' ч назад';
+    return d.toLocaleDateString('ru-RU', {day:'numeric',month:'long',hour:'2-digit',minute:'2-digit'});
 }
 
 async function markRead(id) {
     await api.post(`/tasks/notifications/${id}/read/`);
-    loadNotifications(currentPage);
+    const notif = allNotifs.find(n => n.id === id);
+    if (notif) notif.is_read = true;
+    renderNotifs();
 }
 
 async function markAllRead() {
-    const data = await api.get(`/tasks/notifications/`);
-    for (const n of (data.results || [])) {
+    for (const n of allNotifs) {
         if (!n.is_read) await api.post(`/tasks/notifications/${n.id}/read/`);
     }
-    loadNotifications(currentPage);
+    allNotifs.forEach(n => n.is_read = true);
+    renderNotifs();
 }
 
 loadNotifications();

@@ -1,124 +1,82 @@
 {% extends 'base.html' %}
+{% load static %}
+
 {% block title %}Задачи — Task Tracker{% endblock %}
 
 {% block content %}
-<div class="container-fluid mt-4">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h2><i class="bi bi-kanban"></i> Канбан-доска</h2>
-        <div class="d-flex gap-2">
-            <select class="form-select" id="projectFilter" onchange="loadBoard()">
+
+<section class="page">
+
+    <div class="page-header">
+        <div>
+            <h1>Задачи</h1>
+            <p>Управляйте всеми задачами команды</p>
+        </div>
+        <div style="display:flex;gap:12px;">
+            <select id="projectFilter" onchange="loadBoard()" style="height:50px;border:1px solid #d1d5db;border-radius:14px;padding:0 16px;font-size:15px;">
                 <option value="">Все проекты</option>
             </select>
-            <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#taskModal" onclick="resetTaskForm()">
-                <i class="bi bi-plus-lg"></i> Новая задача
-            </button>
+            <button class="btn btn-primary" onclick="openTaskModal()">+ Создать задачу</button>
         </div>
     </div>
 
-    <div id="emptyState" class="text-center py-5 d-none">
-        <i class="bi bi-inbox display-1 text-muted"></i>
-        <h3 class="text-muted mt-3">Нет задач</h3>
-        <p class="text-muted">Создайте первую задачу для этого проекта</p>
-        <button class="btn btn-primary mt-2" data-bs-toggle="modal" data-bs-target="#taskModal" onclick="resetTaskForm()">
-            <i class="bi bi-plus-lg"></i> Создать задачу
-        </button>
+    <!-- Канбан -->
+    <div style="display:flex;gap:20px;overflow-x:auto;padding-bottom:20px;" id="kanbanBoard">
+        <p style="color:#6b7280;text-align:center;padding:60px;width:100%;">Загрузка...</p>
     </div>
 
-    <!-- Канбан-доска -->
-    <div class="kanban-board d-flex gap-3 overflow-auto pb-3" id="kanbanBoard">
-        <div class="kanban-column card shadow-sm">
-            <div class="card-header bg-secondary text-white d-flex justify-content-between align-items-center">
-                <strong><i class="bi bi-archive me-1"></i>Бэклог</strong>
-                <span class="badge bg-light text-dark" id="countBacklog">0</span>
-            </div>
-            <div class="card-body p-2" id="backlog" style="min-height: 200px; max-height: 70vh; overflow-y: auto;"></div>
-        </div>
-        <div class="kanban-column card shadow-sm">
-            <div class="card-header bg-info text-white d-flex justify-content-between align-items-center">
-                <strong><i class="bi bi-list-task me-1"></i>К выполнению</strong>
-                <span class="badge bg-light text-dark" id="countTodo">0</span>
-            </div>
-            <div class="card-body p-2" id="todo" style="min-height: 200px; max-height: 70vh; overflow-y: auto;"></div>
-        </div>
-        <div class="kanban-column card shadow-sm">
-            <div class="card-header bg-warning text-dark d-flex justify-content-between align-items-center">
-                <strong><i class="bi bi-arrow-repeat me-1"></i>В работе</strong>
-                <span class="badge bg-dark text-white" id="countInProgress">0</span>
-            </div>
-            <div class="card-body p-2" id="in_progress" style="min-height: 200px; max-height: 70vh; overflow-y: auto;"></div>
-        </div>
-        <div class="kanban-column card shadow-sm">
-            <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
-                <strong><i class="bi bi-eye me-1"></i>На проверке</strong>
-                <span class="badge bg-light text-dark" id="countReview">0</span>
-            </div>
-            <div class="card-body p-2" id="review" style="min-height: 200px; max-height: 70vh; overflow-y: auto;"></div>
-        </div>
-        <div class="kanban-column card shadow-sm">
-            <div class="card-header bg-success text-white d-flex justify-content-between align-items-center">
-                <strong><i class="bi bi-check-circle me-1"></i>Выполнено</strong>
-                <span class="badge bg-light text-dark" id="countDone">0</span>
-            </div>
-            <div class="card-body p-2" id="done" style="min-height: 200px; max-height: 70vh; overflow-y: auto;"></div>
-        </div>
+    <!-- Сообщение при 0 задач -->
+    <div id="emptyState" style="display:none;text-align:center;padding:80px 20px;">
+        <div style="font-size:64px;margin-bottom:20px;">📋</div>
+        <h2 style="color:#6b7280;">Нет задач</h2>
+        <p style="color:#9ca3af;margin-bottom:30px;">Создайте первую задачу для этого проекта</p>
+        <button class="btn btn-primary" onclick="openTaskModal()">+ Создать задачу</button>
     </div>
-</div>
+
+</section>
 
 <!-- Модалка задачи -->
-<div class="modal fade" id="taskModal" tabindex="-1">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="taskModalTitle">Новая задача</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+<div id="taskModal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.5);z-index:1000;align-items:center;justify-content:center;">
+    <div class="auth-card" style="max-width:600px;margin:0;">
+        <h2 id="taskModalTitle">Новая задача</h2>
+        <form id="taskForm" style="display:flex;flex-direction:column;gap:14px;">
+            <input type="hidden" name="id" id="taskId">
+            <input type="text" name="title" placeholder="Название задачи" required style="height:50px;border:1px solid #d1d5db;border-radius:14px;padding:0 16px;font-size:15px;">
+            <textarea name="description" placeholder="Описание" rows="3" style="border:1px solid #d1d5db;border-radius:14px;padding:16px;font-size:15px;resize:vertical;"></textarea>
+            <div style="display:flex;gap:12px;">
+                <select name="priority" style="flex:1;height:50px;border:1px solid #d1d5db;border-radius:14px;padding:0 16px;font-size:15px;">
+                    <option value="low">Низкий</option>
+                    <option value="medium" selected>Средний</option>
+                    <option value="high">Высокий</option>
+                    <option value="critical">Критичный</option>
+                </select>
+                <select name="project" id="taskProject" style="flex:1;height:50px;border:1px solid #d1d5db;border-radius:14px;padding:0 16px;font-size:15px;">
+                    <option value="">Без проекта</option>
+                </select>
             </div>
-            <div class="modal-body">
-                <form id="taskForm">
-                    <input type="hidden" name="id" id="taskId">
-                    <div class="row">
-                        <div class="col-md-8 mb-3">
-                            <label class="form-label">Название *</label>
-                            <input type="text" name="title" class="form-control" required>
-                        </div>
-                        <div class="col-md-4 mb-3">
-                            <label class="form-label">Приоритет</label>
-                            <select name="priority" class="form-select">
-                                <option value="low">Низкий</option>
-                                <option value="medium" selected>Средний</option>
-                                <option value="high">Высокий</option>
-                                <option value="critical">Критичный</option>
-                            </select>
-                        </div>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Описание</label>
-                        <textarea name="description" class="form-control" rows="4"></textarea>
-                    </div>
-                    <div class="row">
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label">Проект</label>
-                            <select name="project" class="form-select" id="taskProject"></select>
-                        </div>
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label">Дедлайн</label>
-                            <input type="datetime-local" name="deadline" class="form-control">
-                        </div>
-                    </div>
-                </form>
+            <div style="display:flex;gap:12px;">
+                <select name="assignee" id="taskAssignee" style="flex:1;height:50px;border:1px solid #d1d5db;border-radius:14px;padding:0 16px;font-size:15px;">
+                    <option value="">Не назначен</option>
+                </select>
+                <input type="datetime-local" name="deadline" style="flex:1;height:50px;border:1px solid #d1d5db;border-radius:14px;padding:0 16px;font-size:15px;">
             </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
-                <button type="button" class="btn btn-primary" onclick="saveTask()">Сохранить</button>
+            <div id="taskError" style="color:#ef4444;font-size:14px;display:none;"></div>
+            <div style="display:flex;gap:12px;">
+                <button type="button" class="btn btn-outline" style="flex:1;" onclick="closeTaskModal()">Отмена</button>
+                <button type="submit" class="btn btn-primary" style="flex:1;">Сохранить</button>
             </div>
-        </div>
+        </form>
     </div>
 </div>
+
 {% endblock %}
 
 {% block scripts %}
 <script>
-const PRIORITY_COLORS = { low: 'secondary', medium: 'warning', high: 'danger', critical: 'dark' };
 const STATUSES = ['backlog', 'todo', 'in_progress', 'review', 'done'];
+const STATUS_NAMES = { backlog: '📦 Бэклог', todo: '📋 К выполнению', in_progress: '⚡ В работе', review: '👀 На проверке', done: '✅ Выполнено' };
+const STATUS_CLASSES = { backlog: 'progress', todo: 'progress', in_progress: 'progress', review: 'review', done: 'done' };
+const PRIORITY_COLORS = { low: '#10b981', medium: '#f59e0b', high: '#f97316', critical: '#ef4444' };
 
 async function loadBoard() {
     const projectId = document.getElementById('projectFilter').value;
@@ -128,102 +86,107 @@ async function loadBoard() {
     try {
         const data = await api.get(url);
         const tasks = data.results || [];
-        const totalTasks = tasks.length;
 
-        const board = document.getElementById('kanbanBoard');
-        const emptyState = document.getElementById('emptyState');
-
-        if (totalTasks === 0) {
-            board.classList.add('d-none');
-            emptyState.classList.remove('d-none');
+        if (tasks.length === 0) {
+            document.getElementById('kanbanBoard').style.display = 'none';
+            document.getElementById('emptyState').style.display = 'block';
             return;
         }
 
-        board.classList.remove('d-none');
-        emptyState.classList.add('d-none');
+        document.getElementById('kanbanBoard').style.display = 'flex';
+        document.getElementById('emptyState').style.display = 'none';
 
-        STATUSES.forEach(status => {
-            const container = document.getElementById(status);
+        const board = document.getElementById('kanbanBoard');
+        board.innerHTML = STATUSES.map(status => {
             const filtered = tasks.filter(t => t.status === status);
-            const countId = 'count' + status.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join('');
-            document.getElementById(countId).textContent = filtered.length;
-
-            container.innerHTML = filtered.map(t => `
-                <div class="card mb-2 task-card border-start border-${t.priority === 'critical' ? 'dark' : t.priority === 'high' ? 'danger' : t.priority === 'medium' ? 'warning' : 'secondary'} border-3"
-                     draggable="true" ondragstart="drag(event)" id="task-${t.id}" data-task-id="${t.id}">
-                    <div class="card-body p-2">
-                        <div class="d-flex justify-content-between align-items-start mb-1">
-                            <a href="/tasks/${t.id}/" class="small fw-bold text-decoration-none">${t.title}</a>
-                            <span class="badge rounded-pill bg-${PRIORITY_COLORS[t.priority]}">${t.priority}</span>
-                        </div>
-                        <small class="text-muted">${t.assignee?.full_name || 'Не назначена'}</small>
-                        ${t.deadline ? `<div class="mt-1"><small class="${t.is_overdue ? 'text-danger' : 'text-muted'}"><i class="bi bi-clock me-1"></i>${new Date(t.deadline).toLocaleDateString()}</small></div>` : ''}
+            return `
+                <div style="min-width:280px;max-width:320px;flex:1;">
+                    <div style="background:linear-gradient(135deg,#4f46e5,#2563eb);color:white;border-radius:16px 16px 0 0;padding:14px 20px;font-weight:600;display:flex;justify-content:space-between;">
+                        <span>${STATUS_NAMES[status]}</span>
+                        <span>${filtered.length}</span>
                     </div>
-                </div>
-            `).join('');
-        });
-    } catch (e) {
+                    <div class="kanban-drop" id="col-${status}" style="background:rgba(255,255,255,.5);border-radius:0 0 16px 16px;padding:12px;min-height:300px;max-height:60vh;overflow-y:auto;"
+                         ondragover="event.preventDefault()"
+                         ondrop="dropTask(event, '${status}')">
+                        ${filtered.map(t => `
+                            <div class="task-card" draggable="true" ondragstart="dragTask(event, ${t.id})" onclick="location.href='/tasks/${t.id}/'" style="margin-bottom:10px;padding:14px;border-left:4px solid ${PRIORITY_COLORS[t.priority]};">
+                                <strong>${t.title}</strong>
+                                <div style="font-size:13px;color:#6b7280;margin-top:4px;">${t.assignee?.full_name || 'Не назначена'}</div>
+                                ${t.deadline ? `<div style="font-size:12px;color:${t.is_overdue ? '#ef4444' : '#9ca3af'};margin-top:4px;">📅 ${new Date(t.deadline).toLocaleDateString('ru-RU')}</div>` : ''}
+                                ${t.project_name ? `<div style="font-size:11px;color:#4f46e5;margin-top:4px;">📁 ${t.project_name}</div>` : ''}
+                            </div>
+                        `).join('') || '<div style="text-align:center;color:#9ca3af;padding:20px;font-size:13px;">Пусто</div>'}
+                    </div>
+                </div>`;
+        }).join('');
+    } catch(e) {
         console.error(e);
     }
 }
 
-async function loadProjects() {
+async function loadFilters() {
     try {
-        const data = await api.get('/tasks/projects/');
-        const select = document.getElementById('projectFilter');
-        const taskSelect = document.getElementById('taskProject');
-        select.innerHTML = '<option value="">Все проекты</option>' + data.results.map(p => `<option value="${p.id}">${p.name}</option>`).join('');
-        taskSelect.innerHTML = '<option value="">Без проекта</option>' + data.results.map(p => `<option value="${p.id}">${p.name}</option>`).join('');
+        const [projects, users] = await Promise.all([
+            api.get('/tasks/projects/'),
+            api.get('/users/')
+        ]);
+
+        const projectSelect = document.getElementById('projectFilter');
+        projectSelect.innerHTML = '<option value="">Все проекты</option>' + projects.results.map(p => `<option value="${p.id}">${p.name}</option>`).join('');
+
+        const taskProject = document.getElementById('taskProject');
+        taskProject.innerHTML = '<option value="">Без проекта</option>' + projects.results.map(p => `<option value="${p.id}">${p.name}</option>`).join('');
+
+        const taskAssignee = document.getElementById('taskAssignee');
+        const userList = users.results || users;
+        taskAssignee.innerHTML = '<option value="">Не назначен</option>' + userList.map(u => `<option value="${u.id}">${u.full_name || u.last_name + ' ' + u.first_name}</option>`).join('');
+
         const urlParams = new URLSearchParams(window.location.search);
-        if (urlParams.get('project')) select.value = urlParams.get('project');
-    } catch (e) {}
+        if (urlParams.get('project')) projectSelect.value = urlParams.get('project');
+    } catch(e) {}
 }
 
-function resetTaskForm() {
+function openTaskModal() {
     document.getElementById('taskModalTitle').textContent = 'Новая задача';
     document.getElementById('taskForm').reset();
     document.getElementById('taskId').value = '';
+    document.getElementById('taskModal').style.display = 'flex';
 }
 
-async function saveTask() {
-    const form = document.getElementById('taskForm');
-    const data = Object.fromEntries(new FormData(form));
+function closeTaskModal() {
+    document.getElementById('taskModal').style.display = 'none';
+}
+
+let draggedTaskId = null;
+function dragTask(ev, id) { draggedTaskId = id; }
+async function dropTask(ev, status) {
+    ev.preventDefault();
+    if (draggedTaskId) {
+        await api.patch(`/tasks/${draggedTaskId}/status/`, { status });
+        loadBoard();
+    }
+}
+
+document.getElementById('taskForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const data = Object.fromEntries(new FormData(e.target));
     const id = data.id;
     delete data.id;
     if (!data.project) delete data.project;
     if (!data.deadline) delete data.deadline;
+    if (!data.assignee) delete data.assignee;
+
     try {
         if (id) await api.patch(`/tasks/${id}/`, data);
         else await api.post('/tasks/', data);
-        bootstrap.Modal.getInstance(document.getElementById('taskModal')).hide();
+        closeTaskModal();
         loadBoard();
-    } catch (e) {
-        alert('Ошибка сохранения');
-    }
-}
-
-function allowDrop(ev) { ev.preventDefault(); }
-function drag(ev) {
-    const card = ev.target.closest('.task-card');
-    if (card) ev.dataTransfer.setData("text", card.dataset.taskId);
-}
-async function drop(ev, newStatus) {
-    ev.preventDefault();
-    const taskId = ev.dataTransfer.getData("text");
-    if (taskId) {
-        await api.patch(`/tasks/${taskId}/status/`, { status: newStatus });
-        loadBoard();
-    }
-}
-
-STATUSES.forEach(s => {
-    const el = document.getElementById(s);
-    if (el) {
-        el.addEventListener('dragover', allowDrop);
-        el.addEventListener('drop', e => drop(e, s));
+    } catch(err) {
+        document.getElementById('taskError').textContent = 'Ошибка сохранения';
+        document.getElementById('taskError').style.display = 'block';
     }
 });
 
-loadProjects().then(() => loadBoard());
+loadFilters().then(() => loadBoard());
 </script>
 {% endblock %}

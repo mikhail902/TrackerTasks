@@ -8,6 +8,9 @@ from rest_framework.decorators import action
 from django.utils import timezone
 from django.shortcuts import get_object_or_404
 
+from django.db.models import Count, Q, OuterRef, Subquery
+from rest_framework.decorators import action
+
 from .models import Project, Task, TaskComment, TaskHistory, Notification, TimeLog
 from .serializer import (
     ProjectSerializer, ProjectCreateSerializer,
@@ -205,3 +208,71 @@ class TimeLogView(ListCreateAPIView):
         timelog = serializer.save(user=self.request.user, task=task)
         task.spent_hours += timelog.hours
         task.save()
+
+
+class BusyEmployeesView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        from users.models import User
+        employees = User.objects.filter(is_active=True).annotate(
+            active_tasks=Count('assigned_tasks', filter=Q(assigned_tasks__status__in=['todo', 'in_progress', 'review']))
+        ).order_by('-active_tasks')
+
+        data = [{
+            'id': e.id,
+            'full_name': e.full_name,
+            'position': e.position,
+            'department': e.department.name if e.department else None,
+            'active_tasks': e.active_tasks,
+        } for e in employees]
+
+        return Response(data)
+
+
+class ImportantTasksView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        from users.models import User
+
+        important = Task.objects.filter(
+            status__in=['todo', 'backlog', 'cancelled'],
+            subtasks__status__in=['in_progress', 'review']
+        ).distinct()
+
+        least_busy = User.objects.filter(is_active=True).annotate(
+            task_count=Count('assigned_tasks', filter=Q(assigned_tasks__status__in=['todo', 'in_progress', 'review']))
+        ).order_by('task_count').first()
+
+        result = []
+        for task in important:
+            candidates = []
+
+            if least_busy:
+                candidates.append(least_busy)
+
+            if task.parent_task and task.parent_task.assignee:
+                parent_assignee = task.parent_task.assignee
+                parent_count = parent_assignee.assigned_tasks.filter(
+                    status__in=['todo', 'in_progress', 'review']
+                ).count()
+                least_count = least_busy.assigned_tasks.filter(
+                    status__in=['todo', 'in_progress', 'review']
+                ).count() if least_busy else 0
+
+                if parent_count <= least_count + 2:
+                    if parent_assignee not in candidates:
+                        candidates.append(parent_assignee)
+
+            result.append({
+                'id': task.id,
+                'title': task.title,
+                'deadline': task.deadline,
+                'status': task.status,
+                'priority': task.priority,
+                'project': task.project_name,
+                'candidates': [{'id': c.id, 'full_name': c.full_name} for c in candidates],
+            })
+
+        return Response(result)

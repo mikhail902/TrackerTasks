@@ -1,87 +1,100 @@
 {% extends 'base.html' %}
+{% load static %}
+
 {% block title %}Регистрация — Task Tracker{% endblock %}
 
 {% block content %}
-<div class="container mt-5">
-    <div class="row justify-content-center">
-        <div class="col-md-6">
-            <div class="card shadow">
-                <div class="card-body p-4">
-                    <h3 class="card-title text-center mb-4">Регистрация сотрудника</h3>
-                    <form id="registerForm">
-                        <div class="row">
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label">Фамилия *</label>
-                                <input type="text" name="last_name" class="form-control" placeholder="Иванов" required>
-                            </div>
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label">Имя *</label>
-                                <input type="text" name="first_name" class="form-control" placeholder="Иван" required>
-                            </div>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Отчество</label>
-                            <input type="text" name="middle_name" class="form-control" placeholder="Иванович">
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Email *</label>
-                            <input type="email" name="email" class="form-control" placeholder="ivanov@company.ru" required>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Должность *</label>
-                            <input type="text" name="position" class="form-control" placeholder="Разработчик" required>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Пароль *</label>
-                            <input type="password" name="password" class="form-control" placeholder="Минимум 8 символов" minlength="8" required>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Подтверждение пароля *</label>
-                            <input type="password" name="password_confirm" class="form-control" placeholder="Повторите пароль" required>
-                        </div>
-                        <div id="registerError" class="alert alert-danger d-none"></div>
-                        <div id="registerSuccess" class="alert alert-success d-none"></div>
-                        <button type="submit" class="btn btn-success w-100 btn-lg">
-                            <i class="bi bi-person-plus"></i> Зарегистрироваться
-                        </button>
-                    </form>
-                    <p class="mt-3 text-center">
-                        Уже есть аккаунт? <a href="/login/">Войти</a>
-                    </p>
-                </div>
+
+<section class="auth-page">
+
+    <div class="auth-card">
+
+        <h2>Регистрация</h2>
+
+        <form id="registerForm">
+
+            <div style="display:flex;gap:12px;">
+                <input type="text" name="last_name" placeholder="Фамилия" required style="flex:1;height:50px;border:1px solid #d1d5db;border-radius:14px;padding:0 16px;font-size:15px;">
+                <input type="text" name="first_name" placeholder="Имя" required style="flex:1;height:50px;border:1px solid #d1d5db;border-radius:14px;padding:0 16px;font-size:15px;">
             </div>
-        </div>
+
+            <input type="text" name="position" placeholder="Должность" required style="height:50px;border:1px solid #d1d5db;border-radius:14px;padding:0 16px;font-size:15px;">
+
+            <input type="email" name="email" placeholder="Email" required autocomplete="email" style="height:50px;border:1px solid #d1d5db;border-radius:14px;padding:0 16px;font-size:15px;">
+
+            <input type="password" name="password" placeholder="Пароль (мин. 8 символов)" required minlength="8" autocomplete="new-password" style="height:50px;border:1px solid #d1d5db;border-radius:14px;padding:0 16px;font-size:15px;">
+
+            <input type="password" name="password_confirm" placeholder="Подтвердите пароль" required minlength="8" style="height:50px;border:1px solid #d1d5db;border-radius:14px;padding:0 16px;font-size:15px;">
+
+            <div id="registerError" style="color:#ef4444;font-size:14px;display:none;text-align:center;"></div>
+            <div id="registerSuccess" style="color:#10b981;font-size:14px;display:none;text-align:center;"></div>
+
+            <button type="submit" class="btn btn-primary auth-btn">Создать аккаунт</button>
+
+        </form>
+
+        <p style="text-align:center;margin-top:24px;color:#6b7280;">
+            Уже есть аккаунт?
+            <a href="/login/" style="color:#4f46e5;font-weight:600;text-decoration:none;">Войти</a>
+        </p>
+
     </div>
-</div>
+
+</section>
+
 {% endblock %}
 
 {% block scripts %}
 <script>
 document.getElementById('registerForm').addEventListener('submit', async (e) => {
     e.preventDefault();
+
     const errorDiv = document.getElementById('registerError');
     const successDiv = document.getElementById('registerSuccess');
-    errorDiv.classList.add('d-none');
-    successDiv.classList.add('d-none');
+    errorDiv.style.display = 'none';
+    successDiv.style.display = 'none';
 
     const formData = new FormData(e.target);
-    if (formData.get('password') !== formData.get('password_confirm')) {
+    const password = formData.get('password');
+    const passwordConfirm = formData.get('password_confirm');
+
+    // Проверка паролей
+    if (password !== passwordConfirm) {
         errorDiv.textContent = 'Пароли не совпадают';
-        errorDiv.classList.remove('d-none');
+        errorDiv.style.display = 'block';
         return;
     }
 
-    const data = Object.fromEntries(formData);
-    delete data.password_confirm;
+    if (password.length < 8) {
+        errorDiv.textContent = 'Пароль должен быть не менее 8 символов';
+        errorDiv.style.display = 'block';
+        return;
+    }
+
+    const data = {
+        email: formData.get('email'),
+        password: password,
+        first_name: formData.get('first_name'),
+        last_name: formData.get('last_name'),
+        position: formData.get('position')
+    };
+
+    const btn = e.target.querySelector('button');
+    btn.textContent = 'Регистрация...';
+    btn.disabled = true;
 
     try {
         await api.post('/users/register/', data);
-        successDiv.textContent = 'Регистрация успешна! Перенаправление...';
-        successDiv.classList.remove('d-none');
+        successDiv.textContent = '✅ Регистрация успешна! Перенаправляем...';
+        successDiv.style.display = 'block';
         setTimeout(() => window.location.href = '/login/', 1500);
     } catch (err) {
-        errorDiv.textContent = err.detail || 'Ошибка регистрации';
-        errorDiv.classList.remove('d-none');
+        const msg = typeof err === 'object' ? (err.email?.[0] || err.detail || 'Ошибка регистрации') : 'Ошибка сервера';
+        errorDiv.textContent = msg;
+        errorDiv.style.display = 'block';
+    } finally {
+        btn.textContent = 'Создать аккаунт';
+        btn.disabled = false;
     }
 });
 </script>

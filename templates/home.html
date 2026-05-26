@@ -1,0 +1,66 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}Обзор — Task Tracker{% endblock %}
+
+{% block content %}
+<div class="hero">
+    <div class="hero-left">
+        <span class="badge">👋 Добро пожаловать</span>
+        <h1 id="greeting">Обзор проектов</h1>
+        <p>Ваши проекты и задачи на одной странице</p>
+        <div class="hero-buttons">
+            <a href="/dashboard/" class="btn btn-primary">Дашборд</a>
+            <a href="/tasks/" class="btn btn-outline">Все задачи</a>
+        </div>
+    </div>
+    <div class="dashboard-card">
+        <div class="dashboard-sidebar">
+            <div class="sidebar-title">Проекты</div>
+            <div id="projectList"></div>
+        </div>
+        <div class="dashboard-content">
+            <div class="dashboard-top" id="miniStats"></div>
+            <div class="task-table" id="recentTasks"></div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+async function loadHome() {
+    const hour = new Date().getHours();
+    const greeting = hour < 6 ? 'Доброй ночи' : hour < 12 ? 'Доброе утро' : hour < 18 ? 'Добрый день' : 'Добрый вечер';
+    document.getElementById('greeting').textContent = greeting + '!';
+
+    try {
+        const projects = await api.get('/tasks/projects/');
+        const tasks = await api.get('/tasks/assigned/');
+        const results = tasks.results || [];
+
+        // Сайдбар проектов
+        document.getElementById('projectList').innerHTML = (projects.results || []).slice(0, 5).map(p => `
+            <div class="sidebar-item"><a href="/tasks/?project=${p.id}" style="color:inherit;text-decoration:none;">${p.name}</a></div>
+        `).join('');
+
+        // Мини-статистика
+        document.getElementById('miniStats').innerHTML = `
+            <div class="mini-card"><h3>${results.length}</h3><p>Задач</p></div>
+            <div class="mini-card"><h3>${results.filter(t => t.status === 'in_progress').length}</h3><p>В работе</p></div>
+            <div class="mini-card"><h3>${results.filter(t => t.is_overdue).length}</h3><p>Просрочено</p></div>
+        `;
+
+        // Последние задачи
+        document.getElementById('recentTasks').innerHTML = results.slice(0, 5).map(t => `
+            <div class="task-row">
+                <div><strong>${t.title}</strong><br><small>${t.project_name || 'Без проекта'}</small></div>
+                <span class="status ${t.status === 'done' ? 'done' : t.status === 'review' ? 'review' : 'progress'}">${t.status}</span>
+            </div>
+        `).join('') || '<p style="color:#6b7280;">Нет активных задач</p>';
+    } catch(e) {
+        console.error(e);
+    }
+}
+loadHome();
+</script>
+{% endblock %}

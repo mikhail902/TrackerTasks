@@ -1,20 +1,23 @@
 {% extends 'base.html' %}
-{% block title %}404 — Task Tracker{% endblock %}
+
+{% block title %}
+404
+{% endblock %}
 
 {% block content %}
-<div class="container text-center py-5">
-    <div class="py-5">
-        <h1 class="display-1 fw-bold text-primary">404</h1>
-        <h2 class="text-muted">Страница не найдена</h2>
-        <p class="lead mb-4">Задача, проект или страница, которую вы ищете, не существует.</p>
-        <div class="d-flex gap-3 justify-content-center">
-            <a href="/dashboard/" class="btn btn-primary btn-lg">
-                <i class="bi bi-house"></i> На главную
-            </a>
-            <a href="/tasks/" class="btn btn-outline-primary btn-lg">
-                <i class="bi bi-kanban"></i> К задачам
-            </a>
-        </div>
-    </div>
-</div>
+
+<section class="not-found">
+
+    <h1>404</h1>
+
+    <p>
+        Страница не найдена
+    </p>
+
+    <a href="/" class="btn btn-primary">
+        На главную
+    </a>
+
+</section>
+
 {% endblock %}
