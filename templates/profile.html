@@ -8,103 +8,107 @@
 <section class="page">
 
     <div class="profile-card">
-
         <div class="profile-avatar" id="avatarInitials">—</div>
-
         <h2 id="profileName">—</h2>
         <p id="profilePosition">—</p>
-
         <div class="profile-stats">
-            <div>
-                <h3 id="profileTasks">0</h3>
-                <span>Задач</span>
-            </div>
-            <div>
-                <h3 id="profileProjects">0</h3>
-                <span>Проектов</span>
-            </div>
-            <div>
-                <h3 id="profileDone">0%</h3>
-                <span>Выполнено</span>
-            </div>
+            <div><h3 id="profileTasks">0</h3><span>Задач</span></div>
+            <div><h3 id="profileProjects">0</h3><span>Проектов</span></div>
+            <div><h3 id="profileDone">0%</h3><span>Выполнено</span></div>
         </div>
-
     </div>
 
-    <!-- Форма редактирования -->
     <div class="profile-card" style="margin-top:30px;">
         <h2 style="font-size:28px;margin-bottom:30px;">Редактировать профиль</h2>
 
-        <form id="profileForm" style="display:flex;flex-direction:column;gap:16px;max-width:400px;margin:0 auto;">
+        <div style="display:flex;flex-direction:column;gap:16px;max-width:400px;margin:0 auto;">
             <div style="display:flex;gap:16px;">
-                <input type="text" name="last_name" placeholder="Фамилия" id="editLastName" style="flex:1;height:50px;border:1px solid #d1d5db;border-radius:14px;padding:0 16px;font-size:15px;">
-                <input type="text" name="first_name" placeholder="Имя" id="editFirstName" style="flex:1;height:50px;border:1px solid #d1d5db;border-radius:14px;padding:0 16px;font-size:15px;">
+                <input type="text" id="editLastName" placeholder="Фамилия"
+                       style="flex:1;height:50px;border:1px solid #d1d5db;border-radius:14px;padding:0 16px;font-size:15px;">
+                <input type="text" id="editFirstName" placeholder="Имя"
+                       style="flex:1;height:50px;border:1px solid #d1d5db;border-radius:14px;padding:0 16px;font-size:15px;">
             </div>
-            <input type="text" name="position" placeholder="Должность" id="editPosition" style="height:50px;border:1px solid #d1d5db;border-radius:14px;padding:0 16px;font-size:15px;">
-            <input type="text" name="phone" placeholder="Телефон" id="editPhone" style="height:50px;border:1px solid #d1d5db;border-radius:14px;padding:0 16px;font-size:15px;">
+            <input type="text" id="editPosition" placeholder="Должность"
+                   style="height:50px;border:1px solid #d1d5db;border-radius:14px;padding:0 16px;font-size:15px;">
+            <input type="text" id="editPhone" placeholder="Телефон"
+                   style="height:50px;border:1px solid #d1d5db;border-radius:14px;padding:0 16px;font-size:15px;">
             <div id="profileMsg" style="text-align:center;font-size:14px;display:none;"></div>
-            <button type="submit" class="btn btn-primary" style="width:100%;">Сохранить</button>
-        </form>
+            <button id="saveBtn" class="btn btn-primary" style="width:100%;" onclick="saveProfile()">Сохранить</button>
+        </div>
     </div>
 
 </section>
 
-{% endblock %}
-
-{% block scripts %}
 <script>
 async function loadProfile() {
+    const token = localStorage.getItem('access');
+    if (!token) return;
+
     try {
-        const profile = await api.get('/users/me/');
-        const tasks = await api.get('/tasks/assigned/');
-        const projects = await api.get('/tasks/projects/');
+        const [profile, tasks, projects] = await Promise.all([
+            fetch('http://localhost:8000/api/users/me/', { headers: { 'Authorization': 'Bearer ' + token } }).then(r => r.json()),
+            fetch('http://localhost:8000/api/tasks/assigned/', { headers: { 'Authorization': 'Bearer ' + token } }).then(r => r.json()),
+            fetch('http://localhost:8000/api/tasks/projects/', { headers: { 'Authorization': 'Bearer ' + token } }).then(r => r.json())
+        ]);
+
         const taskResults = tasks.results || [];
-        const doneCount = taskResults.filter(t => t.status === 'done').length;
-        const percent = taskResults.length > 0 ? Math.round((doneCount / taskResults.length) * 100) : 0;
+        const done = taskResults.filter(t => t.status === 'done').length;
+        const percent = taskResults.length ? Math.round((done / taskResults.length) * 100) : 0;
 
-        // Аватар
-        const initials = (profile.last_name?.[0] || '') + (profile.first_name?.[0] || '');
-        document.getElementById('avatarInitials').textContent = initials || '?';
-
-        // Имя и должность
-        document.getElementById('profileName').textContent = profile.last_name + ' ' + profile.first_name;
+        document.getElementById('avatarInitials').textContent = (profile.last_name?.[0] || '') + (profile.first_name?.[0] || '');
+        document.getElementById('profileName').textContent = (profile.last_name || '') + ' ' + (profile.first_name || '');
         document.getElementById('profilePosition').textContent = profile.position || 'Не указана';
-
-        // Статистика
         document.getElementById('profileTasks').textContent = taskResults.length;
         document.getElementById('profileProjects').textContent = (projects.results || []).length;
         document.getElementById('profileDone').textContent = percent + '%';
 
-        // Поля формы
         document.getElementById('editLastName').value = profile.last_name || '';
         document.getElementById('editFirstName').value = profile.first_name || '';
         document.getElementById('editPosition').value = profile.position || '';
         document.getElementById('editPhone').value = profile.phone || '';
-
-        // Имя в навбаре
-        const navName = document.getElementById('nav-username');
-        if (navName) navName.textContent = profile.last_name + ' ' + (profile.first_name?.[0] || '') + '.';
     } catch(e) {
         console.error(e);
     }
 }
 
-document.getElementById('profileForm').addEventListener('submit', async (e) => {
-    e.preventDefault();
+async function saveProfile() {
+    const token = localStorage.getItem('access');
     const msg = document.getElementById('profileMsg');
-    const btn = e.target.querySelector('button');
+    const btn = document.getElementById('saveBtn');
+
     btn.textContent = 'Сохранение...';
     btn.disabled = true;
 
-    const data = Object.fromEntries(new FormData(e.target));
+    const data = {
+        last_name: document.getElementById('editLastName').value,
+        first_name: document.getElementById('editFirstName').value,
+        position: document.getElementById('editPosition').value,
+        phone: document.getElementById('editPhone').value,
+    };
+
     try {
-        await api.patch('/users/me/', data);
-        msg.textContent = '✅ Профиль обновлён';
-        msg.style.color = '#10b981';
-        msg.style.display = 'block';
-        loadProfile();
-    } catch(err) {
-        msg.textContent = '❌ Ошибка обновления';
+        const response = await fetch('http://localhost:8000/api/users/me/', {
+            method: 'PATCH',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': 'Bearer ' + token,
+            },
+            body: JSON.stringify(data),
+        });
+
+        if (response.ok) {
+            msg.textContent = '✅ Профиль обновлён';
+            msg.style.color = '#10b981';
+            msg.style.display = 'block';
+            loadProfile();
+        } else {
+            const err = await response.json();
+            msg.textContent = '❌ ' + (err.detail || 'Ошибка');
+            msg.style.color = '#ef4444';
+            msg.style.display = 'block';
+        }
+    } catch(e) {
+        msg.textContent = '❌ Ошибка сети';
         msg.style.color = '#ef4444';
         msg.style.display = 'block';
     } finally {
@@ -112,8 +116,9 @@ document.getElementById('profileForm').addEventListener('submit', async (e) => {
         btn.disabled = false;
         setTimeout(() => msg.style.display = 'none', 3000);
     }
-});
+}
 
 loadProfile();
 </script>
+
 {% endblock %}

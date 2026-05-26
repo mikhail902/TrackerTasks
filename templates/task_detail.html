@@ -11,153 +11,76 @@
         <p style="color:#6b7280;text-align:center;padding:60px;">Загрузка...</p>
     </div>
 
-    <!-- Комментарии -->
     <div class="task-detail-card" style="margin-top:30px;">
         <h2 style="font-size:24px;margin-bottom:24px;">💬 Комментарии</h2>
         <div id="commentsList" style="margin-bottom:20px;"></div>
-        <form id="commentForm" style="display:flex;gap:12px;">
-            <input type="text" name="text" placeholder="Добавить комментарий..." required style="flex:1;height:50px;border:1px solid #d1d5db;border-radius:14px;padding:0 16px;font-size:15px;">
-            <button type="submit" class="btn btn-primary">Отправить</button>
-        </form>
-    </div>
-
-    <!-- Учёт времени -->
-    <div class="task-detail-card" style="margin-top:30px;">
-        <h2 style="font-size:24px;margin-bottom:24px;">⏱ Учёт времени</h2>
-        <div style="display:flex;gap:12px;margin-bottom:20px;">
-            <input type="number" id="hoursInput" placeholder="Часы" step="0.5" min="0.5" style="width:100px;height:50px;border:1px solid #d1d5db;border-radius:14px;padding:0 16px;font-size:15px;">
-            <input type="date" id="dateInput" style="flex:1;height:50px;border:1px solid #d1d5db;border-radius:14px;padding:0 16px;font-size:15px;">
-            <button class="btn btn-primary" onclick="addTimeLog()">Добавить</button>
+        <div style="display:flex;gap:12px;">
+            <input type="text" id="commentInput" placeholder="Добавить комментарий..." style="flex:1;height:50px;border:1px solid #d1d5db;border-radius:14px;padding:0 16px;font-size:15px;">
+            <button class="btn btn-primary" onclick="addComment()">Отправить</button>
         </div>
-        <div id="timelogsList"></div>
     </div>
 
 </section>
 
-{% endblock %}
-
-{% block scripts %}
 <script>
-const taskId = window.location.pathname.split('/').filter(Boolean).pop();
+var A = 'http://localhost:8000/api';
+var T = localStorage.getItem('access');
+var H = { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + T };
+var taskId = window.location.pathname.split('/').filter(Boolean).pop();
 
-async function loadTask() {
-    try {
-        const [task, comments, history, timelogs] = await Promise.all([
-            api.get(`/tasks/${taskId}/`),
-            api.get(`/tasks/${taskId}/comments/`),
-            api.get(`/tasks/${taskId}/history/`),
-            api.get(`/tasks/${taskId}/timelogs/`)
-        ]);
+function loadTask() {
+    fetch(A + '/tasks/tasks/' + taskId + '/', { headers: { 'Authorization': 'Bearer ' + T } })
+        .then(r => r.json())
+        .then(function(task) {
+            document.getElementById('taskContent').innerHTML =
+                '<div class="task-detail-top"><div><h1>' + task.title + '</h1><p>' + (task.description || 'Нет описания') + '</p></div>' +
+                '<span class="status ' + (task.status === 'done' ? 'done' : task.status === 'review' ? 'review' : 'progress') + '">' + (task.status === 'in_progress' ? 'В работе' : task.status === 'review' ? 'На проверке' : task.status === 'done' ? 'Выполнено' : task.status) + '</span></div>' +
+                '<div class="task-info-grid">' +
+                '<div class="info-box"><span>Исполнитель</span><h4>' + (task.assignee?.full_name || 'Не назначен') + '</h4></div>' +
+                '<div class="info-box"><span>Дедлайн</span><h4 style="color:' + (task.is_overdue ? '#ef4444' : 'inherit') + '">' + (task.deadline ? new Date(task.deadline).toLocaleDateString('ru-RU') : 'Не указан') + '</h4></div>' +
+                '<div class="info-box"><span>Приоритет</span><h4>' + (task.priority === 'critical' ? '🔴 Критичный' : task.priority === 'high' ? '🟠 Высокий' : task.priority === 'medium' ? '🟡 Средний' : '🟢 Низкий') + '</h4></div>' +
+                '<div class="info-box"><span>Проект</span><h4>' + (task.project_name || 'Без проекта') + '</h4></div>' +
+                '<div class="info-box"><span>Создатель</span><h4>' + (task.creator?.full_name || '—') + '</h4></div>' +
+                '<div class="info-box"><span>Дата создания</span><h4>' + new Date(task.created_at).toLocaleDateString('ru-RU') + '</h4></div>' +
+                '</div>' +
+                '<div style="margin-top:30px;display:flex;gap:12px;flex-wrap:wrap;">' +
+                '<button class="btn btn-outline btn-sm" onclick="changeStatus(\'todo\')">📋 К выполнению</button>' +
+                '<button class="btn btn-outline btn-sm" onclick="changeStatus(\'in_progress\')">⚡ В работу</button>' +
+                '<button class="btn btn-outline btn-sm" onclick="changeStatus(\'review\')">👀 На проверку</button>' +
+                '<button class="btn btn-sm" style="background:#10b981;color:white;border:none;" onclick="changeStatus(\'done\')">✅ Выполнено</button>' +
+                '<button class="btn btn-outline btn-sm" style="color:#ef4444;border-color:#ef4444;" onclick="deleteTask()">🗑 Удалить</button>' +
+                '</div>';
 
-        const container = document.getElementById('taskContent');
-        container.innerHTML = `
-            <div class="task-detail-top">
-                <div>
-                    <h1>${task.title}</h1>
-                    <p>${task.description || 'Нет описания'}</p>
-                </div>
-                <span class="status ${task.status === 'done' ? 'done' : task.status === 'review' ? 'review' : 'progress'}">
-                    ${task.status === 'in_progress' ? 'В работе' : task.status === 'review' ? 'На проверке' : task.status === 'done' ? 'Выполнено' : task.status}
-                </span>
-            </div>
-
-            <div class="task-info-grid">
-                <div class="info-box">
-                    <span>Исполнитель</span>
-                    <h4>${task.assignee?.full_name || 'Не назначен'}</h4>
-                </div>
-                <div class="info-box">
-                    <span>Дедлайн</span>
-                    <h4 style="color:${task.is_overdue ? '#ef4444' : 'inherit'}">${task.deadline ? new Date(task.deadline).toLocaleDateString('ru-RU', {day:'numeric', month:'long'}) : 'Не указан'}</h4>
-                </div>
-                <div class="info-box">
-                    <span>Приоритет</span>
-                    <h4>${task.priority === 'critical' ? '🔴 Критичный' : task.priority === 'high' ? '🟠 Высокий' : task.priority === 'medium' ? '🟡 Средний' : '🟢 Низкий'}</h4>
-                </div>
-                <div class="info-box">
-                    <span>Проект</span>
-                    <h4>${task.project_name || 'Без проекта'}</h4>
-                </div>
-                <div class="info-box">
-                    <span>Создатель</span>
-                    <h4>${task.creator?.full_name || '—'}</h4>
-                </div>
-                <div class="info-box">
-                    <span>Затрачено времени</span>
-                    <h4>${task.spent_hours || 0} ч</h4>
-                </div>
-            </div>
-
-            <div style="margin-top:30px;display:flex;gap:12px;flex-wrap:wrap;">
-                <button class="btn btn-outline btn-sm" onclick="changeStatus('todo')">📋 К выполнению</button>
-                <button class="btn btn-outline btn-sm" onclick="changeStatus('in_progress')">⚡ В работу</button>
-                <button class="btn btn-outline btn-sm" onclick="changeStatus('review')">👀 На проверку</button>
-                <button class="btn btn-success btn-sm" onclick="changeStatus('done')" style="background:#10b981;color:white;border:none;">✅ Выполнено</button>
-            </div>
-
-            <div style="margin-top:20px;font-size:14px;color:#6b7280;">
-                Создана: ${new Date(task.created_at).toLocaleString('ru-RU')}
-                ${task.completed_at ? ' | Завершена: ' + new Date(task.completed_at).toLocaleString('ru-RU') : ''}
-            </div>
-        `;
-
-        // Комментарии
-        const commentsList = document.getElementById('commentsList');
-        const commentResults = comments.results || [];
-        commentsList.innerHTML = commentResults.length === 0
-            ? '<p style="color:#9ca3af;">Нет комментариев</p>'
-            : commentResults.map(c => `
-                <div style="background:rgba(255,255,255,.7);border-radius:16px;padding:16px;margin-bottom:12px;">
-                    <div style="display:flex;justify-content:space-between;margin-bottom:4px;">
-                        <strong>${c.author?.full_name || '—'}</strong>
-                        <small style="color:#9ca3af;">${new Date(c.created_at).toLocaleString('ru-RU')}</small>
-                    </div>
-                    <p style="margin:0;">${c.text}</p>
-                </div>
-            `).join('');
-
-        // Учёт времени
-        document.getElementById('dateInput').value = new Date().toISOString().split('T')[0];
-        renderTimeLogs(timelogs.results || []);
-    } catch(e) {
-        document.getElementById('taskContent').innerHTML = '<p style="color:#ef4444;text-align:center;padding:60px;">Задача не найдена</p>';
-    }
+            fetch(A + '/tasks/tasks/' + taskId + '/comments/', { headers: { 'Authorization': 'Bearer ' + T } })
+                .then(r => r.json())
+                .then(function(data) {
+                    var comments = Array.isArray(data) ? data : (data.results || []);
+                    var cl = document.getElementById('commentsList');
+                    cl.innerHTML = comments.length === 0 ? '<p style="color:#9ca3af;">Нет комментариев</p>' :
+                        comments.map(function(c) { return '<div style="background:rgba(255,255,255,.7);border-radius:16px;padding:16px;margin-bottom:12px;"><div style="display:flex;justify-content:space-between;"><strong>' + (c.author?.full_name || '—') + '</strong><small>' + new Date(c.created_at).toLocaleString('ru-RU') + '</small></div><p style="margin:0;">' + c.text + '</p></div>'; }).join('');
+                });
+        });
 }
 
-async function changeStatus(status) {
-    await api.patch(`/tasks/${taskId}/status/`, { status });
-    loadTask();
+function changeStatus(status) {
+    fetch(A + '/tasks/tasks/' + taskId + '/status/', { method: 'PATCH', headers: H, body: JSON.stringify({ status: status }) })
+        .then(function() { loadTask(); });
 }
 
-document.getElementById('commentForm').addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const text = new FormData(e.target).get('text');
-    await api.post(`/tasks/${taskId}/comments/`, { text });
-    e.target.reset();
-    loadTask();
-});
-
-async function addTimeLog() {
-    const hours = document.getElementById('hoursInput').value;
-    const date = document.getElementById('dateInput').value;
-    if (!hours || !date) return;
-    await api.post(`/tasks/${taskId}/timelogs/`, { hours, date });
-    document.getElementById('hoursInput').value = '';
-    loadTask();
+function addComment() {
+    var text = document.getElementById('commentInput').value;
+    if (!text) return;
+    fetch(A + '/tasks/tasks/' + taskId + '/comments/', { method: 'POST', headers: H, body: JSON.stringify({ text: text }) })
+        .then(function() { document.getElementById('commentInput').value = ''; loadTask(); });
 }
 
-function renderTimeLogs(logs) {
-    const container = document.getElementById('timelogsList');
-    container.innerHTML = logs.length === 0
-        ? '<p style="color:#9ca3af;">Нет записей</p>'
-        : logs.map(t => `
-            <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #f3f4f6;">
-                <span>${t.user?.full_name || '—'} — ${new Date(t.date).toLocaleDateString('ru-RU')}</span>
-                <strong>${t.hours} ч</strong>
-            </div>
-        `).join('');
+function deleteTask() {
+    if (!confirm('Удалить задачу?')) return;
+    fetch(A + '/tasks/tasks/' + taskId + '/', { method: 'DELETE', headers: { 'Authorization': 'Bearer ' + T } })
+        .then(function() { window.location.href = '/tasks/'; });
 }
 
 loadTask();
 </script>
+
 {% endblock %}

@@ -6,64 +6,63 @@
 {% block content %}
 
 <section class="auth-page">
-
     <div class="auth-card">
-
         <h2>Вход в систему</h2>
 
         <form id="loginForm">
-
-            <input type="email" name="email" placeholder="Email" required autocomplete="email"
+            <input type="email" id="emailInput" name="email" placeholder="Email" required autocomplete="email"
                    style="height:50px;border:1px solid #d1d5db;border-radius:14px;padding:0 16px;font-size:15px;width:100%;margin-bottom:14px;">
 
-            <input type="password" name="password" placeholder="Пароль" required autocomplete="current-password"
+            <input type="password" id="passwordInput" name="password" placeholder="Пароль" required autocomplete="current-password"
                    style="height:50px;border:1px solid #d1d5db;border-radius:14px;padding:0 16px;font-size:15px;width:100%;margin-bottom:14px;">
 
             <div id="loginError" style="color:#ef4444;font-size:14px;display:none;text-align:center;margin-bottom:14px;"></div>
 
             <button type="submit" class="btn btn-primary auth-btn" style="width:100%;">Войти</button>
-
         </form>
 
         <p style="text-align:center;margin-top:24px;color:#6b7280;">
             Нет аккаунта?
             <a href="/register/" style="color:#4f46e5;font-weight:600;text-decoration:none;">Регистрация</a>
         </p>
-
     </div>
-
 </section>
 
 <script>
 document.getElementById('loginForm').addEventListener('submit', async function(e) {
     e.preventDefault();
 
+    const email = document.getElementById('emailInput').value.trim();
+    const password = document.getElementById('passwordInput').value;
     const errorDiv = document.getElementById('loginError');
-    errorDiv.style.display = 'none';
-
     const btn = this.querySelector('button');
+
+    errorDiv.style.display = 'none';
     btn.textContent = 'Вход...';
     btn.disabled = true;
 
-    const formData = new FormData(this);
-    const data = {
-        email: formData.get('email'),
-        password: formData.get('password')
-    };
-
-    console.log('Отправка:', data);
-
     try {
-        const response = await api.post('/users/token/', data);
-        console.log('Ответ:', response);
+        const response = await fetch('http://localhost:8000/api/users/token/', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email, password }),
+        });
 
-        if (response.access) {
-            localStorage.setItem('access', response.access);
-            localStorage.setItem('refresh', response.refresh);
-            window.location.href = '/home/';
+        const data = await response.json();
+
+        if (data.access) {
+            localStorage.setItem('access', data.access);
+            localStorage.setItem('refresh', data.refresh);
+            console.log('SAVED:', localStorage.getItem('access') ? 'YES' : 'NO');
+            setTimeout(() => {
+                window.location.href = '/home/';
+            }, 200);
+        } else {
+            errorDiv.textContent = 'Неверный email или пароль';
+            errorDiv.style.display = 'block';
         }
-    } catch (err) {
-        console.error('Ошибка:', err);
+    } catch (error) {
+        console.error(error);
         errorDiv.textContent = 'Неверный email или пароль';
         errorDiv.style.display = 'block';
     } finally {

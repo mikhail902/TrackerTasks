@@ -21,7 +21,7 @@ urlpatterns = [
     path('api/tasks/', include('tasks.urls')),
 
     # Публичные
-    path('', TemplateView.as_view(template_name='login.html')),
+    path('', TemplateView.as_view(template_name='home.html')),
     path('login/', TemplateView.as_view(template_name='login.html')),
     path('register/', TemplateView.as_view(template_name='register.html')),
 

@@ -7,6 +7,7 @@ class Project(models.Model):
         ('active', 'Активный'),
         ('completed', 'Завершён'),
         ('cancelled', 'Отменён'),
+        ('archived', 'Архив'),
     ]
 
     name = models.CharField(max_length=200, verbose_name='Название')

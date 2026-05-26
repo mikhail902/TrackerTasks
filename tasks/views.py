@@ -22,9 +22,7 @@ from .serializer import (
 from .paginators import TaskPagination, NotificationPagination
 from .permissions import IsAdminOrManager, IsAdmin, IsCreatorOrAssignee
 
-
 class ProjectViewSet(ModelViewSet):
-    """CRUD проектов"""
     queryset = Project.objects.all()
     permission_classes = [IsAuthenticated]
 
@@ -34,16 +32,13 @@ class ProjectViewSet(ModelViewSet):
         return ProjectSerializer
 
     def get_permissions(self):
-        if self.action in ['create', 'update', 'partial_update', 'destroy']:
-            return [IsAuthenticated(), IsAdminOrManager()]
         return [IsAuthenticated()]
 
     def perform_create(self, serializer):
         serializer.save(manager=self.request.user)
 
-
 class TaskViewSet(ModelViewSet):
-    """CRUD задач"""
+
     queryset = Task.objects.all()
     pagination_class = TaskPagination
     permission_classes = [IsAuthenticated]
@@ -55,7 +50,7 @@ class TaskViewSet(ModelViewSet):
 
     def get_permissions(self):
         if self.action == 'destroy':
-            return [IsAuthenticated(), IsAdminOrManager()]
+            return [IsAuthenticated(), IsCreatorOrAssignee()]
         return [IsAuthenticated()]
 
     def perform_create(self, serializer):

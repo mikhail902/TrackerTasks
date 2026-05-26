@@ -14,9 +14,6 @@ class IsAdmin(BasePermission):
     def has_permission(self, request, view):
         return request.user.role == 'admin'
 
-
 class IsCreatorOrAssignee(BasePermission):
-    """Создатель задачи или исполнитель"""
-
     def has_object_permission(self, request, view, obj):
-        return obj.creator == request.user or obj.assignee == request.user
+        return obj.creator == request.user or obj.assignee == request.user or request.user.role == 'admin'

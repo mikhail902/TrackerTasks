@@ -20,173 +20,157 @@
         </div>
     </div>
 
-    <!-- Канбан -->
-    <div style="display:flex;gap:20px;overflow-x:auto;padding-bottom:20px;" id="kanbanBoard">
+    <div id="kanbanBoard" style="display:flex;flex-direction:row;gap:16px;overflow-x:auto;padding-bottom:20px;">
         <p style="color:#6b7280;text-align:center;padding:60px;width:100%;">Загрузка...</p>
     </div>
 
-    <!-- Сообщение при 0 задач -->
     <div id="emptyState" style="display:none;text-align:center;padding:80px 20px;">
         <div style="font-size:64px;margin-bottom:20px;">📋</div>
         <h2 style="color:#6b7280;">Нет задач</h2>
-        <p style="color:#9ca3af;margin-bottom:30px;">Создайте первую задачу для этого проекта</p>
+        <p style="color:#9ca3af;margin-bottom:30px;">Создайте первую задачу</p>
         <button class="btn btn-primary" onclick="openTaskModal()">+ Создать задачу</button>
     </div>
 
 </section>
 
-<!-- Модалка задачи -->
 <div id="taskModal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.5);z-index:1000;align-items:center;justify-content:center;">
     <div class="auth-card" style="max-width:600px;margin:0;">
         <h2 id="taskModalTitle">Новая задача</h2>
-        <form id="taskForm" style="display:flex;flex-direction:column;gap:14px;">
-            <input type="hidden" name="id" id="taskId">
-            <input type="text" name="title" placeholder="Название задачи" required style="height:50px;border:1px solid #d1d5db;border-radius:14px;padding:0 16px;font-size:15px;">
-            <textarea name="description" placeholder="Описание" rows="3" style="border:1px solid #d1d5db;border-radius:14px;padding:16px;font-size:15px;resize:vertical;"></textarea>
+        <div style="display:flex;flex-direction:column;gap:14px;">
+            <input type="hidden" id="taskId">
+            <input type="text" id="taskTitle" placeholder="Название" required style="height:50px;border:1px solid #d1d5db;border-radius:14px;padding:0 16px;font-size:15px;width:100%;">
+            <textarea id="taskDesc" placeholder="Описание" rows="3" style="border:1px solid #d1d5db;border-radius:14px;padding:16px;font-size:15px;resize:vertical;width:100%;"></textarea>
             <div style="display:flex;gap:12px;">
-                <select name="priority" style="flex:1;height:50px;border:1px solid #d1d5db;border-radius:14px;padding:0 16px;font-size:15px;">
-                    <option value="low">Низкий</option>
-                    <option value="medium" selected>Средний</option>
-                    <option value="high">Высокий</option>
-                    <option value="critical">Критичный</option>
+                <select id="taskPriority" style="flex:1;height:50px;border:1px solid #d1d5db;border-radius:14px;padding:0 16px;font-size:15px;">
+                    <option value="low">Низкий</option><option value="medium" selected>Средний</option><option value="high">Высокий</option><option value="critical">Критичный</option>
                 </select>
-                <select name="project" id="taskProject" style="flex:1;height:50px;border:1px solid #d1d5db;border-radius:14px;padding:0 16px;font-size:15px;">
+                <select id="taskProject" style="flex:1;height:50px;border:1px solid #d1d5db;border-radius:14px;padding:0 16px;font-size:15px;">
                     <option value="">Без проекта</option>
                 </select>
             </div>
             <div style="display:flex;gap:12px;">
-                <select name="assignee" id="taskAssignee" style="flex:1;height:50px;border:1px solid #d1d5db;border-radius:14px;padding:0 16px;font-size:15px;">
+                <select id="taskAssignee" style="flex:1;height:50px;border:1px solid #d1d5db;border-radius:14px;padding:0 16px;font-size:15px;">
                     <option value="">Не назначен</option>
                 </select>
-                <input type="datetime-local" name="deadline" style="flex:1;height:50px;border:1px solid #d1d5db;border-radius:14px;padding:0 16px;font-size:15px;">
+                <input type="datetime-local" id="taskDeadline" required style="flex:1;height:50px;border:1px solid #d1d5db;border-radius:14px;padding:0 16px;font-size:15px;">
             </div>
-            <div id="taskError" style="color:#ef4444;font-size:14px;display:none;"></div>
             <div style="display:flex;gap:12px;">
                 <button type="button" class="btn btn-outline" style="flex:1;" onclick="closeTaskModal()">Отмена</button>
-                <button type="submit" class="btn btn-primary" style="flex:1;">Сохранить</button>
+                <button class="btn btn-primary" style="flex:1;" onclick="saveTask()">Сохранить</button>
             </div>
-        </form>
+        </div>
     </div>
 </div>
 
-{% endblock %}
-
-{% block scripts %}
 <script>
-const STATUSES = ['backlog', 'todo', 'in_progress', 'review', 'done'];
-const STATUS_NAMES = { backlog: '📦 Бэклог', todo: '📋 К выполнению', in_progress: '⚡ В работе', review: '👀 На проверке', done: '✅ Выполнено' };
-const STATUS_CLASSES = { backlog: 'progress', todo: 'progress', in_progress: 'progress', review: 'review', done: 'done' };
-const PRIORITY_COLORS = { low: '#10b981', medium: '#f59e0b', high: '#f97316', critical: '#ef4444' };
+var A = 'http://localhost:8000/api';
+var T = localStorage.getItem('access');
+var H = { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + T };
+var STATUSES = ['backlog', 'todo', 'in_progress', 'review', 'done'];
+var NAMES = { backlog: '📦 Бэклог', todo: '📋 К выполнению', in_progress: '⚡ В работе', review: '👀 На проверке', done: '✅ Выполнено' };
+var COLORS = { low: '#10b981', medium: '#f59e0b', high: '#f97316', critical: '#ef4444' };
 
-async function loadBoard() {
-    const projectId = document.getElementById('projectFilter').value;
-    let url = '/tasks/';
-    if (projectId) url += `?project=${projectId}`;
+function loadBoard() {
+    var pid = document.getElementById('projectFilter').value;
+    var url = A + '/tasks/tasks/';
+    if (pid) url += '?project=' + pid;
 
-    try {
-        const data = await api.get(url);
-        const tasks = data.results || [];
+    fetch(url, { headers: { 'Authorization': 'Bearer ' + T } })
+        .then(r => r.json())
+        .then(function(d) {
+            var tasks = Array.isArray(d) ? d : (d.results || []);
+            if (tasks.length === 0) {
+                document.getElementById('kanbanBoard').style.display = 'none';
+                document.getElementById('emptyState').style.display = 'block';
+                return;
+            }
+            document.getElementById('kanbanBoard').style.display = 'flex';
+            document.getElementById('emptyState').style.display = 'none';
 
-        if (tasks.length === 0) {
-            document.getElementById('kanbanBoard').style.display = 'none';
-            document.getElementById('emptyState').style.display = 'block';
-            return;
-        }
-
-        document.getElementById('kanbanBoard').style.display = 'flex';
-        document.getElementById('emptyState').style.display = 'none';
-
-        const board = document.getElementById('kanbanBoard');
-        board.innerHTML = STATUSES.map(status => {
-            const filtered = tasks.filter(t => t.status === status);
-            return `
-                <div style="min-width:280px;max-width:320px;flex:1;">
-                    <div style="background:linear-gradient(135deg,#4f46e5,#2563eb);color:white;border-radius:16px 16px 0 0;padding:14px 20px;font-weight:600;display:flex;justify-content:space-between;">
-                        <span>${STATUS_NAMES[status]}</span>
-                        <span>${filtered.length}</span>
-                    </div>
-                    <div class="kanban-drop" id="col-${status}" style="background:rgba(255,255,255,.5);border-radius:0 0 16px 16px;padding:12px;min-height:300px;max-height:60vh;overflow-y:auto;"
-                         ondragover="event.preventDefault()"
-                         ondrop="dropTask(event, '${status}')">
-                        ${filtered.map(t => `
-                            <div class="task-card" draggable="true" ondragstart="dragTask(event, ${t.id})" onclick="location.href='/tasks/${t.id}/'" style="margin-bottom:10px;padding:14px;border-left:4px solid ${PRIORITY_COLORS[t.priority]};">
-                                <strong>${t.title}</strong>
-                                <div style="font-size:13px;color:#6b7280;margin-top:4px;">${t.assignee?.full_name || 'Не назначена'}</div>
-                                ${t.deadline ? `<div style="font-size:12px;color:${t.is_overdue ? '#ef4444' : '#9ca3af'};margin-top:4px;">📅 ${new Date(t.deadline).toLocaleDateString('ru-RU')}</div>` : ''}
-                                ${t.project_name ? `<div style="font-size:11px;color:#4f46e5;margin-top:4px;">📁 ${t.project_name}</div>` : ''}
-                            </div>
-                        `).join('') || '<div style="text-align:center;color:#9ca3af;padding:20px;font-size:13px;">Пусто</div>'}
-                    </div>
-                </div>`;
-        }).join('');
-    } catch(e) {
-        console.error(e);
-    }
+            var html = '';
+            for (var i = 0; i < STATUSES.length; i++) {
+                var s = STATUSES[i];
+                var filtered = tasks.filter(function(t) { return t.status === s; });
+                html += '<div style="min-width:270px;max-width:300px;flex:0 0 auto;display:flex;flex-direction:column;">';
+                html += '<div style="background:linear-gradient(135deg,#4f46e5,#2563eb);color:white;border-radius:16px 16px 0 0;padding:14px 20px;font-weight:600;display:flex;justify-content:space-between;"><span>' + NAMES[s] + '</span><span>' + filtered.length + '</span></div>';
+                html += '<div style="background:rgba(255,255,255,.5);border-radius:0 0 16px 16px;padding:12px;min-height:300px;max-height:60vh;overflow-y:auto;" ondragover="event.preventDefault()" ondrop="dropTask(event,\'' + s + '\')">';
+                if (filtered.length === 0) {
+                    html += '<div style="text-align:center;color:#9ca3af;padding:20px;">Пусто</div>';
+                } else {
+                    for (var j = 0; j < filtered.length; j++) {
+                        var t = filtered[j];
+                        html += '<div draggable="true" ondragstart="dragTask(event,' + t.id + ')" onclick="location.href=\'/tasks/' + t.id + '/\'" style="background:white;border-radius:12px;padding:14px;margin-bottom:10px;border-left:4px solid ' + COLORS[t.priority] + ';cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,.05);"><strong style="font-size:14px;">' + t.title + '</strong><div style="font-size:12px;color:#6b7280;margin-top:4px;">' + (t.assignee?.full_name || 'Не назначена') + '</div>' + (t.deadline ? '<div style="font-size:11px;color:' + (t.is_overdue ? '#ef4444' : '#9ca3af') + ';margin-top:4px;">📅 ' + new Date(t.deadline).toLocaleDateString('ru-RU') + '</div>' : '') + (t.project_name ? '<div style="font-size:11px;color:#4f46e5;margin-top:4px;">📁 ' + t.project_name + '</div>' : '') + '</div>';
+                    }
+                }
+                html += '</div></div>';
+            }
+            document.getElementById('kanbanBoard').innerHTML = html;
+        });
 }
 
-async function loadFilters() {
-    try {
-        const [projects, users] = await Promise.all([
-            api.get('/tasks/projects/'),
-            api.get('/users/')
-        ]);
-
-        const projectSelect = document.getElementById('projectFilter');
-        projectSelect.innerHTML = '<option value="">Все проекты</option>' + projects.results.map(p => `<option value="${p.id}">${p.name}</option>`).join('');
-
-        const taskProject = document.getElementById('taskProject');
-        taskProject.innerHTML = '<option value="">Без проекта</option>' + projects.results.map(p => `<option value="${p.id}">${p.name}</option>`).join('');
-
-        const taskAssignee = document.getElementById('taskAssignee');
-        const userList = users.results || users;
-        taskAssignee.innerHTML = '<option value="">Не назначен</option>' + userList.map(u => `<option value="${u.id}">${u.full_name || u.last_name + ' ' + u.first_name}</option>`).join('');
-
-        const urlParams = new URLSearchParams(window.location.search);
-        if (urlParams.get('project')) projectSelect.value = urlParams.get('project');
-    } catch(e) {}
+function loadFilters() {
+    Promise.all([
+        fetch(A + '/tasks/projects/', { headers: { 'Authorization': 'Bearer ' + T } }).then(r => r.json()),
+        fetch(A + '/users/', { headers: { 'Authorization': 'Bearer ' + T } }).then(r => r.json())
+    ]).then(function(r) {
+        var p = Array.isArray(r[0]) ? r[0] : (r[0].results || []);
+        var u = Array.isArray(r[1]) ? r[1] : (r[1].results || r[1]);
+        document.getElementById('projectFilter').innerHTML = '<option value="">Все проекты</option>' + p.map(function(x) { return '<option value="' + x.id + '">' + x.name + '</option>'; }).join('');
+        document.getElementById('taskProject').innerHTML = '<option value="">Без проекта</option>' + p.map(function(x) { return '<option value="' + x.id + '">' + x.name + '</option>'; }).join('');
+        document.getElementById('taskAssignee').innerHTML = '<option value="">Не назначен</option>' + u.map(function(x) { return '<option value="' + x.id + '">' + (x.full_name || x.last_name) + '</option>'; }).join('');
+    });
 }
 
 function openTaskModal() {
     document.getElementById('taskModalTitle').textContent = 'Новая задача';
-    document.getElementById('taskForm').reset();
     document.getElementById('taskId').value = '';
+    document.getElementById('taskTitle').value = '';
+    document.getElementById('taskDesc').value = '';
+    document.getElementById('taskPriority').value = 'medium';
+    document.getElementById('taskProject').value = '';
+    document.getElementById('taskAssignee').value = '';
+    var d = new Date();
+    d.setDate(d.getDate() + 7);
+    document.getElementById('taskDeadline').value = d.toISOString().slice(0, 16);
     document.getElementById('taskModal').style.display = 'flex';
 }
+function closeTaskModal() { document.getElementById('taskModal').style.display = 'none'; }
 
-function closeTaskModal() {
-    document.getElementById('taskModal').style.display = 'none';
-}
-
-let draggedTaskId = null;
-function dragTask(ev, id) { draggedTaskId = id; }
-async function dropTask(ev, status) {
+var dragId = null;
+function dragTask(ev, id) { dragId = id; }
+function dropTask(ev, status) {
     ev.preventDefault();
-    if (draggedTaskId) {
-        await api.patch(`/tasks/${draggedTaskId}/status/`, { status });
-        loadBoard();
+    if (dragId) {
+        fetch(A + '/tasks/tasks/' + dragId + '/status/', { method: 'PATCH', headers: H, body: JSON.stringify({ status: status }) })
+            .then(function() { loadBoard(); });
     }
 }
 
-document.getElementById('taskForm').addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const data = Object.fromEntries(new FormData(e.target));
-    const id = data.id;
-    delete data.id;
-    if (!data.project) delete data.project;
-    if (!data.deadline) delete data.deadline;
-    if (!data.assignee) delete data.assignee;
-
-    try {
-        if (id) await api.patch(`/tasks/${id}/`, data);
-        else await api.post('/tasks/', data);
-        closeTaskModal();
-        loadBoard();
-    } catch(err) {
-        document.getElementById('taskError').textContent = 'Ошибка сохранения';
-        document.getElementById('taskError').style.display = 'block';
+function saveTask() {
+    var id = document.getElementById('taskId').value;
+    var deadlineVal = document.getElementById('taskDeadline').value;
+    if (!deadlineVal) {
+        var d = new Date();
+        d.setDate(d.getDate() + 7);
+        deadlineVal = d.toISOString().slice(0, 16);
     }
-});
+    var data = {
+        title: document.getElementById('taskTitle').value,
+        description: document.getElementById('taskDesc').value,
+        priority: document.getElementById('taskPriority').value,
+        project: document.getElementById('taskProject').value || undefined,
+        assignee: document.getElementById('taskAssignee').value || undefined,
+        deadline: deadlineVal,
+    };
+    if (!data.project) delete data.project;
+    if (!data.assignee) delete data.assignee;
+    var url = id ? A + '/tasks/tasks/' + id + '/' : A + '/tasks/tasks/';
+    fetch(url, { method: id ? 'PATCH' : 'POST', headers: H, body: JSON.stringify(data) })
+        .then(function() { closeTaskModal(); loadBoard(); });
+}
 
-loadFilters().then(() => loadBoard());
+loadFilters();
+setTimeout(function() { loadBoard(); }, 300);
 </script>
+
 {% endblock %}

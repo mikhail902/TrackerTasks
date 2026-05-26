@@ -9,9 +9,7 @@
     <title>{% block title %}Task Tracker{% endblock %}</title>
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
-
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-
     <link rel="stylesheet" href="{% static 'css/style.css' %}">
 </head>
 
@@ -21,41 +19,24 @@
     <div class="bg-glow glow-2"></div>
 
     <!-- NAVBAR -->
-
     <header class="navbar">
 
         <div class="logo">
             <div class="logo-icon">✓</div>
-            <span>Task Tracker</span>
+            <a href="/home/" style="text-decoration:none;color:inherit;"><span>Task Tracker</span></a>
         </div>
 
-        <nav>
-            <a href="/">Дашборд</a>
-            <a href="/projects">Проекты</a>
-            <a href="/tasks">Задачи</a>
-            <a href="/notifications">Уведомления</a>
+        <nav id="navLinks">
+            <a href="/home/">Обзор</a>
+            <a href="/dashboard/">Дашборд</a>
+            <a href="/projects/">Проекты</a>
+            <a href="/tasks/">Задачи</a>
+            <a href="/notifications/">Уведомления</a>
         </nav>
 
-        <div class="nav-buttons">
-
-            {% if user.is_authenticated %}
-
-                <a href="/profile" class="btn btn-secondary">
-                    Профиль
-                </a>
-
-            {% else %}
-
-                <a href="/login" class="btn btn-secondary">
-                    Войти
-                </a>
-
-                <a href="/register" class="btn btn-primary">
-                    Регистрация
-                </a>
-
-            {% endif %}
-
+        <div class="nav-buttons" id="navButtons">
+            <a href="/login/" class="btn btn-secondary">Войти</a>
+            <a href="/register/" class="btn btn-primary">Регистрация</a>
         </div>
 
     </header>
@@ -64,11 +45,11 @@
     {% endblock %}
 
     <!-- FOOTER -->
-
-    <footer class="footer">
-        © 2025 Task Tracker
+<footer class="footer">
+    © 2025 Task Tracker
     </footer>
 
+    <script src="{% static 'js/api.js' %}"></script>
     <script src="{% static 'js/main.js' %}"></script>
 
 </body>
