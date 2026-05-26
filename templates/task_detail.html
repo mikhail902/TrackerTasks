@@ -29,37 +29,65 @@ var H = { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + T };
 var taskId = window.location.pathname.split('/').filter(Boolean).pop();
 
 function loadTask() {
-    fetch(A + '/tasks/tasks/' + taskId + '/', { headers: { 'Authorization': 'Bearer ' + T } })
-        .then(r => r.json())
-        .then(function(task) {
-            document.getElementById('taskContent').innerHTML =
-                '<div class="task-detail-top"><div><h1>' + task.title + '</h1><p>' + (task.description || 'Нет описания') + '</p></div>' +
-                '<span class="status ' + (task.status === 'done' ? 'done' : task.status === 'review' ? 'review' : 'progress') + '">' + (task.status === 'in_progress' ? 'В работе' : task.status === 'review' ? 'На проверке' : task.status === 'done' ? 'Выполнено' : task.status) + '</span></div>' +
-                '<div class="task-info-grid">' +
-                '<div class="info-box"><span>Исполнитель</span><h4>' + (task.assignee?.full_name || 'Не назначен') + '</h4></div>' +
-                '<div class="info-box"><span>Дедлайн</span><h4 style="color:' + (task.is_overdue ? '#ef4444' : 'inherit') + '">' + (task.deadline ? new Date(task.deadline).toLocaleDateString('ru-RU') : 'Не указан') + '</h4></div>' +
-                '<div class="info-box"><span>Приоритет</span><h4>' + (task.priority === 'critical' ? '🔴 Критичный' : task.priority === 'high' ? '🟠 Высокий' : task.priority === 'medium' ? '🟡 Средний' : '🟢 Низкий') + '</h4></div>' +
-                '<div class="info-box"><span>Проект</span><h4>' + (task.project_name || 'Без проекта') + '</h4></div>' +
-                '<div class="info-box"><span>Создатель</span><h4>' + (task.creator?.full_name || '—') + '</h4></div>' +
-                '<div class="info-box"><span>Дата создания</span><h4>' + new Date(task.created_at).toLocaleDateString('ru-RU') + '</h4></div>' +
-                '</div>' +
-                '<div style="margin-top:30px;display:flex;gap:12px;flex-wrap:wrap;">' +
-                '<button class="btn btn-outline btn-sm" onclick="changeStatus(\'todo\')">📋 К выполнению</button>' +
-                '<button class="btn btn-outline btn-sm" onclick="changeStatus(\'in_progress\')">⚡ В работу</button>' +
-                '<button class="btn btn-outline btn-sm" onclick="changeStatus(\'review\')">👀 На проверку</button>' +
-                '<button class="btn btn-sm" style="background:#10b981;color:white;border:none;" onclick="changeStatus(\'done\')">✅ Выполнено</button>' +
-                '<button class="btn btn-outline btn-sm" style="color:#ef4444;border-color:#ef4444;" onclick="deleteTask()">🗑 Удалить</button>' +
-                '</div>';
+    Promise.all([
+        fetch(A + '/tasks/tasks/' + taskId + '/', { headers: { 'Authorization': 'Bearer ' + T } }).then(r => r.json()),
+        fetch(A + '/tasks/tasks/' + taskId + '/comments/', { headers: { 'Authorization': 'Bearer ' + T } }).then(r => r.json()),
+        fetch(A + '/users/', { headers: { 'Authorization': 'Bearer ' + T } }).then(r => r.json())
+    ]).then(function(results) {
+        var task = results[0];
+        var comments = Array.isArray(results[1]) ? results[1] : (results[1].results || []);
+        var users = Array.isArray(results[2]) ? results[2] : (results[2].results || results[2]);
 
-            fetch(A + '/tasks/tasks/' + taskId + '/comments/', { headers: { 'Authorization': 'Bearer ' + T } })
-                .then(r => r.json())
-                .then(function(data) {
-                    var comments = Array.isArray(data) ? data : (data.results || []);
-                    var cl = document.getElementById('commentsList');
-                    cl.innerHTML = comments.length === 0 ? '<p style="color:#9ca3af;">Нет комментариев</p>' :
-                        comments.map(function(c) { return '<div style="background:rgba(255,255,255,.7);border-radius:16px;padding:16px;margin-bottom:12px;"><div style="display:flex;justify-content:space-between;"><strong>' + (c.author?.full_name || '—') + '</strong><small>' + new Date(c.created_at).toLocaleString('ru-RU') + '</small></div><p style="margin:0;">' + c.text + '</p></div>'; }).join('');
-                });
-        });
+        document.getElementById('taskContent').innerHTML =
+            '<div class="task-detail-top"><div><h1>' + task.title + '</h1><p>' + (task.description || 'Нет описания') + '</p></div>' +
+            '<span class="status ' + (task.status === 'done' ? 'done' : task.status === 'review' ? 'review' : 'progress') + '">' + (task.status === 'in_progress' ? 'В работе' : task.status === 'review' ? 'На проверке' : task.status === 'done' ? 'Выполнено' : task.status) + '</span></div>' +
+
+            '<div class="task-info-grid">' +
+            '<div class="info-box"><span>Исполнитель</span>' +
+            '<select id="editAssignee" style="margin-top:8px;height:40px;border:1px solid #d1d5db;border-radius:10px;padding:0 12px;font-size:14px;width:100%;">' +
+            '<option value="">Не назначен</option>' +
+            users.map(function(u) { return '<option value="' + u.id + '" ' + (task.assignee?.id === u.id ? 'selected' : '') + '>' + (u.full_name || u.last_name) + '</option>'; }).join('') +
+            '</select></div>' +
+
+            '<div class="info-box"><span>Приоритет</span>' +
+            '<select id="editPriority" style="margin-top:8px;height:40px;border:1px solid #d1d5db;border-radius:10px;padding:0 12px;font-size:14px;width:100%;">' +
+            '<option value="low" ' + (task.priority === 'low' ? 'selected' : '') + '>🟢 Низкий</option>' +
+            '<option value="medium" ' + (task.priority === 'medium' ? 'selected' : '') + '>🟡 Средний</option>' +
+            '<option value="high" ' + (task.priority === 'high' ? 'selected' : '') + '>🟠 Высокий</option>' +
+            '<option value="critical" ' + (task.priority === 'critical' ? 'selected' : '') + '>🔴 Критичный</option>' +
+            '</select></div>' +
+
+            '<div class="info-box"><span>Дедлайн</span><h4 style="color:' + (task.is_overdue ? '#ef4444' : 'inherit') + '">' + (task.deadline ? new Date(task.deadline).toLocaleString('ru-RU') : 'Не указан') + '</h4></div>' +
+            '<div class="info-box"><span>Проект</span><h4>' + (task.project_name || 'Без проекта') + '</h4></div>' +
+            '<div class="info-box"><span>Создатель</span><h4>' + (task.creator?.full_name || '—') + '</h4></div>' +
+            '<div class="info-box"><span>Дата создания</span><h4>' + new Date(task.created_at).toLocaleString('ru-RU') + '</h4></div>' +
+            '</div>' +
+
+            '<button class="btn btn-primary" style="margin-top:20px;" onclick="saveChanges()">💾 Сохранить</button>' +
+
+            '<div style="margin-top:20px;display:flex;gap:12px;flex-wrap:wrap;">' +
+            '<button class="btn btn-outline btn-sm" onclick="changeStatus(\'todo\')">📋 К выполнению</button>' +
+            '<button class="btn btn-outline btn-sm" onclick="changeStatus(\'in_progress\')">⚡ В работу</button>' +
+            '<button class="btn btn-outline btn-sm" onclick="changeStatus(\'review\')">👀 На проверку</button>' +
+            '<button class="btn btn-sm" style="background:#10b981;color:white;border:none;" onclick="changeStatus(\'done\')">✅ Выполнено</button>' +
+            '<button class="btn btn-outline btn-sm" style="color:#ef4444;border-color:#ef4444;" onclick="deleteTask()">🗑 Удалить</button>' +
+            '</div>';
+
+        var cl = document.getElementById('commentsList');
+        cl.innerHTML = comments.length === 0 ? '<p style="color:#9ca3af;">Нет комментариев</p>' :
+            comments.map(function(c) { return '<div style="background:rgba(255,255,255,.7);border-radius:16px;padding:16px;margin-bottom:12px;"><div style="display:flex;justify-content:space-between;"><strong>' + (c.author?.full_name || '—') + '</strong><small>' + new Date(c.created_at).toLocaleString('ru-RU') + '</small></div><p style="margin:0;">' + c.text + '</p></div>'; }).join('');
+    });
+}
+
+function saveChanges() {
+    var assignee = document.getElementById('editAssignee').value;
+    var priority = document.getElementById('editPriority').value;
+    var data = {
+        assignee: assignee || null,
+        priority: priority
+    };
+    fetch(A + '/tasks/tasks/' + taskId + '/', { method: 'PATCH', headers: H, body: JSON.stringify(data) })
+        .then(function() { window.location.href = '/tasks/'; });
 }
 
 function changeStatus(status) {
