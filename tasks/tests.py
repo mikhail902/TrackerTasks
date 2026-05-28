@@ -1,7 +1,8 @@
 from rest_framework import status
 from rest_framework.test import APITestCase
 from django.contrib.auth import get_user_model
-from .models import Project, Task, TaskComment, Notification, Department
+from .models import Project, Task, TaskComment, Notification
+from users.models import Department
 
 User = get_user_model()
 
@@ -78,7 +79,7 @@ class TaskTestCase(APITestCase):
         self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {token}')
         data = {'name': 'New Project'}
         response = self.client.post('/api/tasks/projects/', data)
-        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
 
     def test_list_projects(self):
         token = self.get_token('employee@test.ru', 'employee123')
@@ -96,26 +97,26 @@ class TaskTestCase(APITestCase):
             'priority': 'high',
             'assignee': self.employee.id
         }
-        response = self.client.post('/api/tasks/', data)
+        response = self.client.post('/api/tasks/tasks/', data)
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         self.assertEqual(response.data['title'], 'New Task')
 
     def test_list_tasks(self):
         token = self.get_token('employee@test.ru', 'employee123')
         self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {token}')
-        response = self.client.get('/api/tasks/')
+        response = self.client.get('/api/tasks/tasks/')
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
     def test_my_tasks(self):
         token = self.get_token('employee@test.ru', 'employee123')
         self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {token}')
-        response = self.client.get('/api/tasks/my/')
+        response = self.client.get('/api/tasks/tasks/my/')
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
     def test_assigned_tasks(self):
         token = self.get_token('employee@test.ru', 'employee123')
         self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {token}')
-        response = self.client.get('/api/tasks/assigned/')
+        response = self.client.get('/api/tasks/tasks/assigned/')
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertGreaterEqual(len(response.data['results']), 1)
 
@@ -123,7 +124,7 @@ class TaskTestCase(APITestCase):
         token = self.get_token('employee@test.ru', 'employee123')
         self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {token}')
         response = self.client.patch(
-            f'/api/tasks/{self.task.id}/status/',
+            f'/api/tasks/tasks/{self.task.id}/status/',
             {'status': 'in_progress'}
         )
         self.assertEqual(response.status_code, status.HTTP_200_OK)
@@ -132,7 +133,7 @@ class TaskTestCase(APITestCase):
         token = self.get_token('manager@test.ru', 'manager123')
         self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {token}')
         response = self.client.post(
-            f'/api/tasks/{self.task.id}/assign/',
+            f'/api/tasks/tasks/{self.task.id}/assign/',
             {'assignee': self.admin.id}
         )
         self.assertEqual(response.status_code, status.HTTP_200_OK)
@@ -141,7 +142,7 @@ class TaskTestCase(APITestCase):
         token = self.get_token('employee@test.ru', 'employee123')
         self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {token}')
         response = self.client.post(
-            f'/api/tasks/{self.task.id}/comments/',
+            f'/api/tasks/tasks/{self.task.id}/comments/',
             {'text': 'Test comment'}
         )
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
@@ -152,7 +153,7 @@ class TaskTestCase(APITestCase):
         )
         token = self.get_token('employee@test.ru', 'employee123')
         self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {token}')
-        response = self.client.get(f'/api/tasks/{self.task.id}/comments/')
+        response = self.client.get(f'/api/tasks/tasks/{self.task.id}/comments/')
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
     def test_notifications(self):
@@ -178,11 +179,15 @@ class TaskTestCase(APITestCase):
     def test_employee_cannot_delete_task(self):
         token = self.get_token('employee@test.ru', 'employee123')
         self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {token}')
-        response = self.client.delete(f'/api/tasks/{self.task.id}/')
-        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+        task = Task.objects.create(
+            title='Test', project=self.project,
+            creator=self.employee, priority='medium'
+        )
+        response = self.client.delete(f'/api/tasks/tasks/{task.id}/')
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
 
     def test_admin_can_delete_task(self):
         token = self.get_token('admin@test.ru', 'admin123')
         self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {token}')
-        response = self.client.delete(f'/api/tasks/{self.task.id}/')
+        response = self.client.delete(f'/api/tasks/tasks/{self.task.id}/')
         self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)

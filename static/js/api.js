@@ -47,3 +47,49 @@ function logout() {
     localStorage.removeItem('refresh');
     window.location.href = '/login/';
 }
+async function refreshToken() {
+    const refresh = localStorage.getItem('refresh');
+    if (!refresh) return null;
+
+    const response = await fetch('http://localhost:8000/api/users/token/refresh/', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ refresh }),
+    });
+
+    if (response.ok) {
+        const data = await response.json();
+        localStorage.setItem('access', data.access);
+        return data.access;
+    }
+    return null;
+}
+
+async function apiFetch(url, options = {}) {
+    let token = localStorage.getItem('access');
+
+    const response = await fetch(url, {
+        ...options,
+        headers: {
+            ...options.headers,
+            'Authorization': 'Bearer ' + token,
+        },
+    });
+
+    if (response.status === 401) {
+        token = await refreshToken();
+        if (token) {
+            return fetch(url, {
+                ...options,
+                headers: {
+                    ...options.headers,
+                    'Authorization': 'Bearer ' + token,
+                },
+            });
+        }
+        localStorage.clear();
+        window.location.href = '/login/';
+    }
+
+    return response;
+}
