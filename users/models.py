@@ -54,7 +54,7 @@ class User(AbstractUser):
         Department, on_delete=models.SET_NULL, null=True, blank=True,
         related_name='employees', verbose_name='Отдел'
     )
-    position = models.CharField(max_length=100, verbose_name='Должность')
+    position = models.CharField(max_length=100, blank=True, verbose_name='Должность')
     phone = models.CharField(max_length=20, blank=True, verbose_name='Телефон')
     avatar = models.ImageField(upload_to='avatars/', blank=True, null=True, verbose_name='Аватар')
     telegram_chat_id = models.CharField(max_length=50, blank=True, null=True, verbose_name='Telegram Chat ID')

@@ -7,6 +7,7 @@ class Project(models.Model):
         ('active', 'Активный'),
         ('completed', 'Завершён'),
         ('cancelled', 'Отменён'),
+        ('archived', 'Архив'),
     ]
 
     name = models.CharField(max_length=200, verbose_name='Название')
@@ -33,8 +34,25 @@ class Project(models.Model):
         return self.name
 
 
+class ProjectInvitation(models.Model):
+    STATUS_CHOICES = [
+        ('pending', 'Ожидает'),
+        ('accepted', 'Принято'),
+        ('declined', 'Отклонено'),
+    ]
+    project = models.ForeignKey(Project, on_delete=models.CASCADE, related_name='invitations')
+    sender = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='sent_invitations')
+    email = models.EmailField()
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name='received_invitations')
+    status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='pending')
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = 'Приглашение'
+        verbose_name_plural = 'Приглашения'
+
+
 class Tag(models.Model):
-    """Тег для задач"""
     name = models.CharField(max_length=50, verbose_name='Название')
     color = models.CharField(max_length=7, default='#007bff', verbose_name='Цвет (HEX)')
     project = models.ForeignKey(
@@ -52,7 +70,6 @@ class Tag(models.Model):
 
 
 class Task(models.Model):
-    """Задача"""
     PRIORITY_CHOICES = [
         ('low', 'Низкий'),
         ('medium', 'Средний'),
@@ -102,6 +119,10 @@ class Task(models.Model):
         related_name='subtasks', verbose_name='Родительская задача'
     )
     tags = models.ManyToManyField(Tag, blank=True, related_name='tasks', verbose_name='Теги')
+    shared_with = models.ManyToManyField(
+        settings.AUTH_USER_MODEL, blank=True,
+        related_name='shared_tasks', verbose_name='Поделиться с'
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     completed_at = models.DateTimeField(null=True, blank=True, verbose_name='Дата завершения')
@@ -116,7 +137,6 @@ class Task(models.Model):
 
 
 class TaskComment(models.Model):
-    """Комментарий к задаче"""
     task = models.ForeignKey(Task, on_delete=models.CASCADE, related_name='comments', verbose_name='Задача')
     author = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.CASCADE,

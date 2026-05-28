@@ -1,154 +1,143 @@
 {% extends 'base.html' %}
+{% load static %}
+
 {% block title %}Профиль — Task Tracker{% endblock %}
 
 {% block content %}
-<div class="container mt-4">
-    <h2><i class="bi bi-person-gear"></i> Профиль</h2>
 
-    <div class="row mt-4">
-        <div class="col-md-4">
-            <div class="card">
-                <div class="card-body text-center">
-                    <div class="mb-3">
-                        <div class="bg-primary rounded-circle d-inline-flex align-items-center justify-content-center" style="width: 100px; height: 100px;">
-                            <span class="text-white display-5" id="avatarInitials">—</span>
-                        </div>
-                    </div>
-                    <h4 id="profileName">—</h4>
-                    <p class="text-muted" id="profilePosition">—</p>
-                    <button class="btn btn-sm btn-outline-primary" onclick="document.getElementById('telegramSection').classList.toggle('d-none')">
-                        <i class="bi bi-telegram"></i> Привязать Telegram
-                    </button>
-                </div>
-            </div>
+<section class="page">
 
-            <div class="card mt-3 d-none" id="telegramSection">
-                <div class="card-body">
-                    <h6>Telegram-уведомления</h6>
-                    <ol class="small">
-                        <li>Найдите бота <strong>@task_tracker_bot</strong></li>
-                        <li>Отправьте <code>/start</code></li>
-                        <li>Вставьте полученный Chat ID:</li>
-                    </ol>
-                    <div class="input-group">
-                        <input type="text" id="telegramChatId" class="form-control" placeholder="123456789">
-                        <button class="btn btn-primary" onclick="saveTelegram()">Сохранить</button>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="col-md-8">
-            <div class="card">
-                <div class="card-body">
-                    <h5>Редактирование профиля</h5>
-                    <form id="profileForm">
-                        <div class="row">
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label">Фамилия</label>
-                                <input type="text" name="last_name" class="form-control" id="editLastName">
-                            </div>
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label">Имя</label>
-                                <input type="text" name="first_name" class="form-control" id="editFirstName">
-                            </div>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Отчество</label>
-                            <input type="text" name="middle_name" class="form-control" id="editMiddleName">
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Должность</label>
-                            <input type="text" name="position" class="form-control" id="editPosition">
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Телефон</label>
-                            <input type="text" name="phone" class="form-control" id="editPhone">
-                        </div>
-                        <div id="profileError" class="alert alert-danger d-none"></div>
-                        <div id="profileSuccess" class="alert alert-success d-none"></div>
-                        <button type="submit" class="btn btn-primary">
-                            <i class="bi bi-check-lg"></i> Сохранить изменения
-                        </button>
-                    </form>
-                </div>
-            </div>
-
-            <div class="card mt-3">
-                <div class="card-body">
-                    <h5>Информация</h5>
-                    <table class="table">
-                        <tr><td>Email</td><td id="infoEmail">—</td></tr>
-                        <tr><td>Роль</td><td id="infoRole">—</td></tr>
-                        <tr><td>Отдел</td><td id="infoDepartment">—</td></tr>
-                        <tr><td>Дата регистрации</td><td id="infoCreated">—</td></tr>
-                        <tr><td>Активен</td><td id="infoActive">—</td></tr>
-                    </table>
-                </div>
-            </div>
+    <div class="profile-card">
+        <div class="profile-avatar" id="avatarInitials">—</div>
+        <h2 id="profileName">—</h2>
+        <p id="profilePosition">—</p>
+        <div class="profile-stats">
+            <div><h3 id="profileTasks">0</h3><span>Задач</span></div>
+            <div><h3 id="profileProjects">0</h3><span>Проектов</span></div>
+            <div><h3 id="profileDone">0%</h3><span>Выполнено</span></div>
         </div>
     </div>
-</div>
-{% endblock %}
 
-{% block scripts %}
+    <div class="profile-card" style="margin-top:30px;">
+        <h2 style="font-size:24px;margin-bottom:20px;">📋 Информация</h2>
+        <table style="width:100%;border-collapse:collapse;">
+            <tr style="border-bottom:1px solid #f3f4f6;">
+                <td style="padding:12px 0;color:#6b7280;width:180px;">Фамилия</td>
+                <td><input type="text" id="editLastName" style="border:1px solid #d1d5db;border-radius:10px;padding:8px 12px;font-size:14px;width:100%;"></td>
+            </tr>
+            <tr style="border-bottom:1px solid #f3f4f6;">
+                <td style="padding:12px 0;color:#6b7280;">Имя</td>
+                <td><input type="text" id="editFirstName" style="border:1px solid #d1d5db;border-radius:10px;padding:8px 12px;font-size:14px;width:100%;"></td>
+            </tr>
+            <tr style="border-bottom:1px solid #f3f4f6;">
+                <td style="padding:12px 0;color:#6b7280;">Отчество</td>
+                <td><input type="text" id="editMiddleName" style="border:1px solid #d1d5db;border-radius:10px;padding:8px 12px;font-size:14px;width:100%;"></td>
+            </tr>
+            <tr style="border-bottom:1px solid #f3f4f6;">
+                <td style="padding:12px 0;color:#6b7280;">Email</td>
+                <td style="padding:12px 0;text-align:right;font-weight:500;color:#6b7280;" id="infoEmail">—</td>
+            </tr>
+            <tr style="border-bottom:1px solid #f3f4f6;">
+                <td style="padding:12px 0;color:#6b7280;">Телефон</td>
+                <td><input type="text" id="editPhone" style="border:1px solid #d1d5db;border-radius:10px;padding:8px 12px;font-size:14px;width:100%;"></td>
+            </tr>
+            <tr style="border-bottom:1px solid #f3f4f6;">
+                <td style="padding:12px 0;color:#6b7280;">Должность</td>
+                <td><input type="text" id="editPosition" style="border:1px solid #d1d5db;border-radius:10px;padding:8px 12px;font-size:14px;width:100%;"></td>
+            </tr>
+            <tr style="border-bottom:1px solid #f3f4f6;">
+                <td style="padding:12px 0;color:#6b7280;">Telegram Chat ID</td>
+                <td><input type="text" id="editTelegram" style="border:1px solid #d1d5db;border-radius:10px;padding:8px 12px;font-size:14px;width:100%;"></td>
+            </tr>
+            <tr style="border-bottom:1px solid #f3f4f6;">
+                <td style="padding:12px 0;color:#6b7280;">Роль</td>
+                <td style="padding:12px 0;text-align:right;font-weight:500;" id="infoRole">—</td>
+            </tr>
+            <tr style="border-bottom:1px solid #f3f4f6;">
+                <td style="padding:12px 0;color:#6b7280;">Отдел</td>
+                <td style="padding:12px 0;text-align:right;font-weight:500;" id="infoDepartment">—</td>
+            </tr>
+            <tr>
+                <td style="padding:12px 0;color:#6b7280;">Дата регистрации</td>
+                <td style="padding:12px 0;text-align:right;font-weight:500;" id="infoCreated">—</td>
+            </tr>
+        </table>
+        <div id="profileMsg" style="text-align:center;font-size:14px;margin-top:20px;display:none;"></div>
+        <button id="saveBtn" class="btn btn-primary" style="width:100%;margin-top:16px;" onclick="saveProfile()">💾 Сохранить</button>
+    </div>
+
+</section>
+
 <script>
-let profileData = {};
+var A = 'http://localhost:8000/api';
+var T = localStorage.getItem('access');
 
-async function loadProfile() {
-    try {
-        profileData = await api.get('/users/me/');
-        document.getElementById('profileName').textContent = profileData.full_name;
-        document.getElementById('profilePosition').textContent = profileData.position || '—';
-        document.getElementById('avatarInitials').textContent = (profileData.last_name?.[0] || '') + (profileData.first_name?.[0] || '');
+function loadProfile() {
+    if (!T) return;
+    Promise.all([
+        fetch(A + '/users/me/', { headers: { 'Authorization': 'Bearer ' + T } }).then(r => r.json()),
+        fetch(A + '/tasks/tasks/my/', { headers: { 'Authorization': 'Bearer ' + T } }).then(r => r.json()),
+        fetch(A + '/tasks/projects/', { headers: { 'Authorization': 'Bearer ' + T } }).then(r => r.json())
+    ]).then(function(results) {
+        var profile = results[0];
+        var tasks = Array.isArray(results[1]) ? results[1] : (results[1].results || []);
+        var projects = Array.isArray(results[2]) ? results[2] : (results[2].results || []);
+        var done = tasks.filter(function(t) { return t.status === 'done'; }).length;
+        var percent = tasks.length ? Math.round((done / tasks.length) * 100) : 0;
 
-        document.getElementById('editLastName').value = profileData.last_name || '';
-        document.getElementById('editFirstName').value = profileData.first_name || '';
-        document.getElementById('editMiddleName').value = profileData.middle_name || '';
-        document.getElementById('editPosition').value = profileData.position || '';
-        document.getElementById('editPhone').value = profileData.phone || '';
-        document.getElementById('telegramChatId').value = profileData.telegram_chat_id || '';
+        document.getElementById('avatarInitials').textContent = (profile.last_name?.[0] || '') + (profile.first_name?.[0] || '');
+        document.getElementById('profileName').textContent = (profile.last_name || '') + ' ' + (profile.first_name || '');
+        document.getElementById('profilePosition').textContent = profile.position || 'Не указана';
+        document.getElementById('profileTasks').textContent = tasks.length;
+        document.getElementById('profileProjects').textContent = projects.length;
+        document.getElementById('profileDone').textContent = percent + '%';
 
-        document.getElementById('infoEmail').textContent = profileData.email;
-        document.getElementById('infoRole').textContent = profileData.role;
-        document.getElementById('infoDepartment').textContent = profileData.department_name || '—';
-        document.getElementById('infoCreated').textContent = new Date(profileData.created_at).toLocaleDateString();
-        document.getElementById('infoActive').innerHTML = profileData.is_active
-            ? '<span class="badge bg-success">Да</span>'
-            : '<span class="badge bg-danger">Нет</span>';
-
-        document.getElementById('nav-username').textContent = profileData.full_name;
-    } catch (e) {
-        console.error(e);
-    }
+        document.getElementById('editLastName').value = profile.last_name || '';
+        document.getElementById('editFirstName').value = profile.first_name || '';
+        document.getElementById('editMiddleName').value = profile.middle_name || '';
+        document.getElementById('editPhone').value = profile.phone || '';
+        document.getElementById('editPosition').value = profile.position || '';
+        document.getElementById('editTelegram').value = profile.telegram_chat_id || '';
+        document.getElementById('infoEmail').textContent = profile.email || '—';
+        document.getElementById('infoRole').textContent = profile.role || '—';
+        document.getElementById('infoDepartment').textContent = profile.department_name || '—';
+        document.getElementById('infoCreated').textContent = profile.created_at ? new Date(profile.created_at).toLocaleDateString('ru-RU') : '—';
+    });
 }
+function saveProfile() {
+    var msg = document.getElementById('profileMsg');
+    var btn = document.getElementById('saveBtn');
+    btn.textContent = 'Сохранение...';
+    btn.disabled = true;
 
-document.getElementById('profileForm').addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const errorDiv = document.getElementById('profileError');
-    const successDiv = document.getElementById('profileSuccess');
-    errorDiv.classList.add('d-none');
-    successDiv.classList.add('d-none');
+    var data = {};
+    var fields = ['first_name', 'last_name', 'middle_name', 'phone', 'position', 'telegram_chat_id'];
+    var ids = ['editFirstName', 'editLastName', 'editMiddleName', 'editPhone', 'editPosition', 'editTelegram'];
 
-    const data = Object.fromEntries(new FormData(e.target));
-    try {
-        await api.patch('/users/me/', data);
-        successDiv.textContent = 'Профиль обновлён';
-        successDiv.classList.remove('d-none');
-        setTimeout(() => successDiv.classList.add('d-none'), 2000);
-        loadProfile();
-    } catch (err) {
-        errorDiv.textContent = 'Ошибка обновления';
-        errorDiv.classList.remove('d-none');
+    for (var i = 0; i < fields.length; i++) {
+        var val = document.getElementById(ids[i]).value.trim();
+        if (val) data[fields[i]] = val;
     }
-});
 
-async function saveTelegram() {
-    const chatId = document.getElementById('telegramChatId').value;
-    await api.patch('/users/me/', { telegram_chat_id: chatId });
-    alert('Telegram Chat ID сохранён');
+    fetch(A + '/users/me/', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + T },
+        body: JSON.stringify(data),
+    }).then(function(r) {
+        if (r.ok) { msg.textContent = '✅ Профиль обновлён'; msg.style.color = '#10b981'; }
+        else { r.json().then(function(e) { msg.textContent = '❌ ' + JSON.stringify(e); }); }
+        msg.style.color = '#ef4444';
+        msg.style.display = 'block';
+        loadProfile();
+    }).catch(function() {
+        msg.textContent = '❌ Ошибка сети'; msg.style.color = '#ef4444'; msg.style.display = 'block';
+    }).finally(function() {
+        btn.textContent = '💾 Сохранить'; btn.disabled = false;
+        setTimeout(function() { msg.style.display = 'none'; }, 3000);
+    });
 }
 
 loadProfile();
 </script>
+
 {% endblock %}

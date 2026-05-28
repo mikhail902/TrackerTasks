@@ -1,187 +1,211 @@
 {% extends 'base.html' %}
+{% load static %}
+
 {% block title %}Проекты — Task Tracker{% endblock %}
 
 {% block content %}
-<div class="container mt-4">
-    <div class="d-flex justify-content-between align-items-center">
-        <h2><i class="bi bi-folder"></i> Проекты</h2>
-        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#projectModal" id="addProjectBtn">
-            <i class="bi bi-plus-lg"></i> Создать проект
-        </button>
+
+<section class="page">
+
+    <div class="page-header">
+        <div>
+            <h1>Проекты</h1>
+            <p>Все проекты компании</p>
+        </div>
+        <div style="display:flex;gap:12px;">
+            <select id="filter" onchange="loadProjects()" style="height:50px;border:1px solid #d1d5db;border-radius:14px;padding:0 16px;font-size:15px;">
+                <option value="active">Активные</option>
+                <option value="archived">Архив</option>
+                <option value="all">Все</option>
+            </select>
+            <button class="btn btn-primary" onclick="openProjectModal()">+ Новый проект</button>
+        </div>
     </div>
 
-    <div class="row mt-4" id="projectsContainer">
-        <div class="col-12 text-center py-5 text-muted">Загрузка...</div>
+    <div id="projectList">
+        <p style="text-align:center;padding:60px;color:#6b7280;">Загрузка...</p>
     </div>
-</div>
 
-<div class="modal fade" id="projectModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="projectModalTitle">Новый проект</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <form id="projectForm">
-                    <input type="hidden" name="id" id="projectId">
-                    <div class="mb-3">
-                        <label class="form-label">Название *</label>
-                        <input type="text" name="name" class="form-control" id="projectName" placeholder="Название проекта" required>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Описание</label>
-                        <textarea name="description" class="form-control" id="projectDescription" rows="3" placeholder="Описание проекта"></textarea>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Дедлайн</label>
-                        <input type="datetime-local" name="deadline" class="form-control" id="projectDeadline">
-                    </div>
-                </form>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
-                <button type="button" class="btn btn-primary" id="projectSubmitBtn" onclick="saveProject()">Создать</button>
-            </div>
+</section>
+
+<!-- Модалка проекта -->
+<div id="projectModal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.5);z-index:1000;align-items:center;justify-content:center;">
+    <div class="auth-card" style="max-width:500px;">
+        <h2 id="modalTitle">Новый проект</h2>
+        <input type="hidden" id="editId">
+        <input type="text" id="projectName" placeholder="Название" required style="height:50px;width:100%;margin-bottom:12px;border:1px solid #d1d5db;border-radius:14px;padding:0 16px;font-size:15px;">
+        <textarea id="projectDesc" placeholder="Описание" rows="3" style="width:100%;margin-bottom:12px;border:1px solid #d1d5db;border-radius:14px;padding:16px;font-size:15px;resize:vertical;"></textarea>
+        <input type="datetime-local" id="projectDeadline" style="height:50px;width:100%;margin-bottom:12px;border:1px solid #d1d5db;border-radius:14px;padding:0 16px;font-size:15px;">
+        <div style="display:flex;gap:12px;">
+            <button class="btn btn-outline" style="flex:1;" onclick="closeProjectModal()">Отмена</button>
+            <button class="btn btn-primary" style="flex:1;" onclick="saveProject()">Сохранить</button>
         </div>
     </div>
 </div>
 
-<div class="modal fade" id="deleteModal" tabindex="-1">
-    <div class="modal-dialog modal-sm">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Удалить проект?</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <p>Все задачи проекта будут удалены. Действие необратимо.</p>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
-                <button type="button" class="btn btn-danger" id="confirmDeleteBtn">Удалить</button>
-            </div>
+<!-- Модалка приглашения -->
+<div id="inviteModal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.5);z-index:1001;align-items:center;justify-content:center;">
+    <div class="auth-card" style="max-width:450px;">
+        <h2>📨 Пригласить участника</h2>
+        <input type="hidden" id="inviteProjectId">
+        <label style="font-size:14px;color:#374151;margin-bottom:4px;display:block;">Email</label>
+        <input type="email" id="inviteEmail" placeholder="user@example.com" required style="height:50px;width:100%;margin-bottom:12px;border:1px solid #d1d5db;border-radius:14px;padding:0 16px;font-size:15px;">
+        <label style="font-size:14px;color:#374151;margin-bottom:4px;display:block;">Роль в проекте</label>
+        <select id="inviteRole" style="height:50px;width:100%;margin-bottom:12px;border:1px solid #d1d5db;border-radius:14px;padding:0 16px;font-size:15px;">
+            <option value="developer">Разработчик</option>
+            <option value="manager">Менеджер</option>
+            <option value="designer">Дизайнер</option>
+            <option value="tester">Тестировщик</option>
+            <option value="analyst">Аналитик</option>
+        </select>
+        <label style="font-size:14px;color:#374151;margin-bottom:4px;display:block;">Никнейм (по умолчанию email)</label>
+        <input type="text" id="inviteNickname" placeholder="Никнейм" style="height:50px;width:100%;margin-bottom:16px;border:1px solid #d1d5db;border-radius:14px;padding:0 16px;font-size:15px;">
+        <div id="inviteError" style="color:#ef4444;font-size:14px;display:none;margin-bottom:12px;"></div>
+        <div style="display:flex;gap:12px;">
+            <button class="btn btn-outline" style="flex:1;" onclick="closeInviteModal()">Отмена</button>
+            <button class="btn btn-primary" style="flex:1;" onclick="sendInvite()">Отправить</button>
         </div>
     </div>
 </div>
-{% endblock %}
 
-{% block scripts %}
 <script>
-let deleteProjectId = null;
+var A = 'http://localhost:8000/api';
+var T = localStorage.getItem('access');
+var H = function() { return { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + T }; };
 
-async function loadProjects() {
-    try {
-        const data = await api.get('/tasks/projects/');
-        const container = document.getElementById('projectsContainer');
+function loadProjects() {
+    var f = document.getElementById('filter').value;
+    var url = A + '/tasks/projects/';
+    if (f !== 'all') url += '?status=' + f;
 
-        if (!data.results || data.results.length === 0) {
-            container.innerHTML = `
-                <div class="col-12 text-center py-5">
-                    <i class="bi bi-folder2-open display-1 text-muted"></i>
-                    <h4 class="text-muted mt-3">Нет проектов</h4>
-                    <p class="text-muted">Создайте первый проект</p>
-                </div>`;
-            return;
-        }
+    fetch(url, { headers: { 'Authorization': 'Bearer ' + T } })
+        .then(r => r.json())
+        .then(function(d) {
+            var p = Array.isArray(d) ? d : (d.results || []);
+            var h = '';
+            if (p.length === 0) {
+                var msg = f === 'archived' ? 'Нет архивных проектов' : 'Нет проектов';
+                h = '<div style="text-align:center;padding:60px;"><div style="font-size:48px;">📁</div><p style="color:#6b7280;">' + msg + '</p></div>';
+            } else {
+                for (var i = 0; i < p.length; i++) {
+                    var isArch = p[i].status === 'archived';
+                    h += '<div class="project-card" style="' + (isArch ? 'opacity:0.6;' : '') + '">';
+                    h += '<div class="project-gradient"></div>';
+                    h += '<h3 style="cursor:pointer;" onclick="location.href=\'/projects/' + p[i].id + '/\'">' + (isArch ? '📦 ' : '') + p[i].name + '</h3>';
+                    h += '<p>' + (p[i].description || 'Нет описания') + '</p>';
+                    if (isArch) h += '<span style="color:#f59e0b;font-size:12px;">В архиве</span>';
+                    h += '<div style="display:flex;gap:6px;margin-top:12px;flex-wrap:wrap;">';
+                    h += '<button class="btn btn-outline btn-sm" style="padding:6px 10px;font-size:11px;" onclick="event.stopPropagation(); editProject(' + p[i].id + ')">✏️</button>';
+                    if (isArch) {
+                        h += '<button class="btn btn-outline btn-sm" style="padding:6px 10px;font-size:11px;color:#10b981;" onclick="event.stopPropagation(); unarchiveProject(' + p[i].id + ')">📂 Разархивировать</button>';
+                    } else {
+                        h += '<button class="btn btn-outline btn-sm" style="padding:6px 10px;font-size:11px;color:#f59e0b;" onclick="event.stopPropagation(); archiveProject(' + p[i].id + ')">📦 В архив</button>';
+                        h += '<button class="btn btn-outline btn-sm" style="padding:6px 10px;font-size:11px;" onclick="event.stopPropagation(); openInviteModal(' + p[i].id + ')">📨 Пригласить</button>';
+                    }
+                    h += '<button class="btn btn-outline btn-sm" style="padding:6px 10px;font-size:11px;color:#ef4444;" onclick="event.stopPropagation(); deleteProject(' + p[i].id + ')">🗑</button>';
+                    h += '</div>';
+                    h += '</div>';
+                }
+            }
+            document.getElementById('projectList').innerHTML = h;
+        });
+}
 
-        container.innerHTML = data.results.map(p => `
-            <div class="col-md-6 col-lg-4 mb-4">
-                <div class="card h-100 shadow-sm ${p.status === 'completed' ? 'border-success' : p.status === 'cancelled' ? 'border-danger' : ''}">
-                    <div class="card-body">
-                        <div class="d-flex justify-content-between align-items-start">
-                            <h5 class="card-title">
-                                <a href="/tasks/?project=${p.id}" class="text-decoration-none">${p.name}</a>
-                            </h5>
-                            <span class="badge bg-${p.status === 'active' ? 'primary' : p.status === 'completed' ? 'success' : 'secondary'}">${p.status}</span>
-                        </div>
-                        <p class="card-text text-muted">${p.description || 'Нет описания'}</p>
-                        <div class="d-flex justify-content-between align-items-center">
-                            <small class="text-muted">
-                                <i class="bi bi-person"></i> ${p.manager?.full_name || '—'}
-                            </small>
-                            <small class="text-muted">
-                                <i class="bi bi-list-check"></i> ${p.tasks_count || 0} задач
-                            </small>
-                        </div>
-                        <div class="progress mt-2" style="height: 5px;">
-                            <div class="progress-bar bg-success" style="width: ${p.tasks_count ? (p.completed_tasks_count / p.tasks_count * 100) : 0}%"></div>
-                        </div>
-                        <small class="text-muted">${p.completed_tasks_count || 0} из ${p.tasks_count || 0} выполнено</small>
-                    </div>
-                    <div class="card-footer bg-transparent">
-                        <div class="d-flex gap-2">
-                            <button class="btn btn-sm btn-outline-primary" onclick="editProject(${p.id}, '${p.name}', '${p.description || ''}', '${p.deadline || ''}')">
-                                <i class="bi bi-pencil"></i>
-                            </button>
-                            <a href="/tasks/?project=${p.id}" class="btn btn-sm btn-outline-secondary">
-                                <i class="bi bi-list-task"></i> Задачи
-                            </a>
-                            <button class="btn btn-sm btn-outline-danger ms-auto" onclick="showDeleteModal(${p.id})">
-                                <i class="bi bi-trash"></i>
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        `).join('');
-    } catch (e) {
-        console.error(e);
+function openProjectModal() {
+    document.getElementById('modalTitle').textContent = 'Новый проект';
+    document.getElementById('editId').value = '';
+    document.getElementById('projectName').value = '';
+    document.getElementById('projectDesc').value = '';
+    document.getElementById('projectDeadline').value = '';
+    document.getElementById('projectModal').style.display = 'flex';
+}
+function closeProjectModal() { document.getElementById('projectModal').style.display = 'none'; }
+
+function editProject(id) {
+    fetch(A + '/tasks/projects/' + id + '/', { headers: { 'Authorization': 'Bearer ' + T } })
+        .then(r => r.json())
+        .then(function(p) {
+            document.getElementById('modalTitle').textContent = 'Изменить';
+            document.getElementById('editId').value = p.id;
+            document.getElementById('projectName').value = p.name;
+            document.getElementById('projectDesc').value = p.description || '';
+            document.getElementById('projectDeadline').value = p.deadline ? p.deadline.slice(0,16) : '';
+            document.getElementById('projectModal').style.display = 'flex';
+        });
+}
+
+function saveProject() {
+    var id = document.getElementById('editId').value;
+    var data = {
+        name: document.getElementById('projectName').value,
+        description: document.getElementById('projectDesc').value,
+        deadline: document.getElementById('projectDeadline').value || undefined
+    };
+    if (!data.deadline) delete data.deadline;
+    var url = id ? A + '/tasks/projects/' + id + '/' : A + '/tasks/projects/';
+    fetch(url, { method: id ? 'PATCH' : 'POST', headers: H(), body: JSON.stringify(data) })
+        .then(function() { closeProjectModal(); loadProjects(); });
+}
+
+function archiveProject(id) {
+    fetch(A + '/tasks/projects/' + id + '/', {
+        method: 'PATCH', headers: H(), body: JSON.stringify({ status: 'archived' })
+    }).then(function() { loadProjects(); });
+}
+
+function unarchiveProject(id) {
+    fetch(A + '/tasks/projects/' + id + '/', {
+        method: 'PATCH', headers: H(), body: JSON.stringify({ status: 'active' })
+    }).then(function() { loadProjects(); });
+}
+
+function deleteProject(id) {
+    if (confirm('Удалить проект?')) {
+        fetch(A + '/tasks/projects/' + id + '/', { method: 'DELETE', headers: { 'Authorization': 'Bearer ' + T } })
+            .then(function() { loadProjects(); });
     }
 }
 
-function editProject(id, name, description, deadline) {
-    document.getElementById('projectModalTitle').textContent = 'Редактировать проект';
-    document.getElementById('projectSubmitBtn').textContent = 'Сохранить';
-    document.getElementById('projectId').value = id;
-    document.getElementById('projectName').value = name;
-    document.getElementById('projectDescription').value = description;
-    if (deadline) {
-        document.getElementById('projectDeadline').value = deadline.slice(0, 16);
-    }
-    new bootstrap.Modal(document.getElementById('projectModal')).show();
+function openInviteModal(id) {
+    document.getElementById('inviteProjectId').value = id;
+    document.getElementById('inviteEmail').value = '';
+    document.getElementById('inviteRole').value = 'developer';
+    document.getElementById('inviteNickname').value = '';
+    document.getElementById('inviteError').style.display = 'none';
+    document.getElementById('inviteModal').style.display = 'flex';
 }
+function closeInviteModal() { document.getElementById('inviteModal').style.display = 'none'; }
 
-document.getElementById('addProjectBtn').addEventListener('click', () => {
-    document.getElementById('projectModalTitle').textContent = 'Новый проект';
-    document.getElementById('projectSubmitBtn').textContent = 'Создать';
-    document.getElementById('projectForm').reset();
-    document.getElementById('projectId').value = '';
+document.getElementById('inviteEmail').addEventListener('input', function() {
+    if (!document.getElementById('inviteNickname').value) {
+        document.getElementById('inviteNickname').value = this.value;
+    }
 });
 
-async function saveProject() {
-    const form = document.getElementById('projectForm');
-    const data = Object.fromEntries(new FormData(form));
-    const id = data.id;
-    delete data.id;
+function sendInvite() {
+    var id = document.getElementById('inviteProjectId').value;
+    var email = document.getElementById('inviteEmail').value;
+    var role = document.getElementById('inviteRole').value;
+    var nickname = document.getElementById('inviteNickname').value || email;
 
-    try {
-        if (id) {
-            await api.patch(`/tasks/projects/${id}/`, data);
+    if (!email) { document.getElementById('inviteError').textContent = 'Введите email'; document.getElementById('inviteError').style.display = 'block'; return; }
+
+    fetch(A + '/tasks/projects/' + id + '/invite/', {
+        method: 'POST',
+        headers: H(),
+        body: JSON.stringify({ email: email, role: role, nickname: nickname })
+    }).then(r => r.json()).then(function(d) {
+        if (d.status === 'invited') {
+            closeInviteModal();
+            alert('Приглашение отправлено!');
         } else {
-            await api.post('/tasks/projects/', data);
+            document.getElementById('inviteError').textContent = d.error;
+            document.getElementById('inviteError').style.display = 'block';
         }
-        bootstrap.Modal.getInstance(document.getElementById('projectModal')).hide();
-        loadProjects();
-    } catch (e) {
-        alert('Ошибка сохранения');
-    }
+    });
 }
-
-function showDeleteModal(id) {
-    deleteProjectId = id;
-    new bootstrap.Modal(document.getElementById('deleteModal')).show();
-}
-
-document.getElementById('confirmDeleteBtn').addEventListener('click', async () => {
-    if (deleteProjectId) {
-        await api.delete(`/tasks/projects/${deleteProjectId}/`);
-        bootstrap.Modal.getInstance(document.getElementById('deleteModal')).hide();
-        deleteProjectId = null;
-        loadProjects();
-    }
-});
 
 loadProjects();
 </script>
+
 {% endblock %}

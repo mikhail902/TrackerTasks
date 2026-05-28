@@ -1,223 +1,166 @@
 {% extends 'base.html' %}
+{% load static %}
+
 {% block title %}Задача — Task Tracker{% endblock %}
 
 {% block content %}
-<div class="container mt-4">
-    <nav aria-label="breadcrumb">
-        <ol class="breadcrumb">
-            <li class="breadcrumb-item"><a href="/dashboard/">Дашборд</a></li>
-            <li class="breadcrumb-item"><a href="/tasks/">Задачи</a></li>
-            <li class="breadcrumb-item active" id="breadcrumbTitle">Загрузка...</li>
-        </ol>
-    </nav>
 
-    <div class="row" id="taskContent">
-        <div class="col-12 text-center py-5">
-            <div class="spinner-border text-primary" role="status">
-                <span class="visually-hidden">Загрузка...</span>
-            </div>
+<section class="page">
+
+    <div class="task-detail-card" id="taskContent">
+        <p style="color:#6b7280;text-align:center;padding:60px;">Загрузка...</p>
+    </div>
+
+    <div class="task-detail-card" style="margin-top:30px;">
+        <h2 style="font-size:24px;margin-bottom:24px;">💬 Комментарии</h2>
+        <div id="commentsList" style="margin-bottom:20px;"></div>
+        <div style="display:flex;gap:12px;">
+            <input type="text" id="commentInput" placeholder="Добавить комментарий..." style="flex:1;height:50px;border:1px solid #d1d5db;border-radius:14px;padding:0 16px;font-size:15px;">
+            <button class="btn btn-primary" onclick="addComment()">Отправить</button>
+        </div>
+    </div>
+
+</section>
+
+<!-- Модалка "Поделиться" -->
+<div id="shareModal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.5);z-index:1001;align-items:center;justify-content:center;">
+    <div class="auth-card" style="max-width:450px;">
+        <h2>📨 Поделиться задачей</h2>
+        <label style="font-size:14px;color:#374151;margin-bottom:4px;display:block;">Email участника</label>
+        <input type="email" id="shareEmail" placeholder="user@example.com" required style="height:50px;width:100%;margin-bottom:12px;border:1px solid #d1d5db;border-radius:14px;padding:0 16px;font-size:15px;">
+        <label style="font-size:14px;color:#374151;margin-bottom:4px;display:block;">Роль</label>
+        <select id="shareRole" style="height:50px;width:100%;margin-bottom:12px;border:1px solid #d1d5db;border-radius:14px;padding:0 16px;font-size:15px;">
+            <option value="viewer">Наблюдатель</option>
+            <option value="executor">Исполнитель</option>
+            <option value="reviewer">Проверяющий</option>
+        </select>
+        <div id="shareError" style="color:#ef4444;font-size:14px;display:none;margin-bottom:12px;"></div>
+        <div style="display:flex;gap:12px;">
+            <button class="btn btn-outline" style="flex:1;" onclick="closeShareModal()">Отмена</button>
+            <button class="btn btn-primary" style="flex:1;" onclick="sendShare()">Отправить</button>
         </div>
     </div>
 </div>
 
-<div class="modal fade" id="deleteTaskModal" tabindex="-1">
-    <div class="modal-dialog modal-sm">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Удалить задачу?</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body"><p>Действие необратимо.</p></div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
-                <button type="button" class="btn btn-danger" id="confirmDeleteTask">Удалить</button>
-            </div>
-        </div>
-    </div>
-</div>
-{% endblock %}
-
-{% block scripts %}
 <script>
-const taskId = window.location.pathname.split('/').filter(Boolean).pop();
+var A = 'http://localhost:8000/api';
+var T = localStorage.getItem('access');
+var H = { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + T };
+var taskId = window.location.pathname.split('/').filter(Boolean).pop();
 
-async function loadTask() {
-    try {
-        const task = await api.get(`/tasks/${taskId}/`);
-        const history = await api.get(`/tasks/${taskId}/history/`);
-        const comments = await api.get(`/tasks/${taskId}/comments/`);
-        const timelogs = await api.get(`/tasks/${taskId}/timelogs/`);
+function loadTask() {
+    Promise.all([
+        fetch(A + '/tasks/tasks/' + taskId + '/', { headers: { 'Authorization': 'Bearer ' + T } }).then(r => r.json()),
+        fetch(A + '/tasks/tasks/' + taskId + '/comments/', { headers: { 'Authorization': 'Bearer ' + T } }).then(r => r.json()),
+        fetch(A + '/users/', { headers: { 'Authorization': 'Bearer ' + T } }).then(r => r.json())
+    ]).then(function(results) {
+        var task = results[0];
+        var comments = Array.isArray(results[1]) ? results[1] : (results[1].results || []);
+        var users = Array.isArray(results[2]) ? results[2] : (results[2].results || results[2]);
 
-        document.getElementById('breadcrumbTitle').textContent = task.title;
+        document.getElementById('taskContent').innerHTML =
+            '<div class="task-detail-top"><div><h1>' + task.title + '</h1><p>' + (task.description || 'Нет описания') + '</p></div>' +
+            '<span class="status ' + (task.status === 'done' ? 'done' : task.status === 'review' ? 'review' : 'progress') + '">' + (task.status === 'in_progress' ? 'В работе' : task.status === 'review' ? 'На проверке' : task.status === 'done' ? 'Выполнено' : task.status) + '</span></div>' +
 
-        const container = document.getElementById('taskContent');
-        container.innerHTML = `
-            <div class="col-md-8">
-                <div class="card shadow-sm">
-                    <div class="card-body">
-                        <div class="d-flex justify-content-between align-items-start mb-3">
-                            <div>
-                                <h3>${task.title}</h3>
-                                <span class="badge bg-${task.priority === 'critical' ? 'dark' : task.priority === 'high' ? 'danger' : task.priority === 'medium' ? 'warning' : 'secondary'}">${task.priority}</span>
-                                <span class="badge bg-${task.status === 'done' ? 'success' : task.status === 'in_progress' ? 'warning' : task.status === 'review' ? 'primary' : 'secondary'}">${task.status}</span>
-                            </div>
-                            <div class="dropdown">
-                                <button class="btn btn-outline-secondary btn-sm" data-bs-toggle="dropdown">
-                                    <i class="bi bi-three-dots"></i>
-                                </button>
-                                <ul class="dropdown-menu">
-                                    <li><a class="dropdown-item" href="#" onclick="editTask(${task.id})">Редактировать</a></li>
-                                    <li><hr class="dropdown-divider"></li>
-                                    <li><a class="dropdown-item text-danger" href="#" onclick="showDeleteModal()">Удалить</a></li>
-                                </ul>
-                            </div>
-                        </div>
+            '<div class="task-info-grid">' +
+            '<div class="info-box"><span>Исполнитель</span>' +
+            '<select id="editAssignee" style="margin-top:8px;height:40px;border:1px solid #d1d5db;border-radius:10px;padding:0 12px;font-size:14px;width:100%;">' +
+            '<option value="">Не назначен</option>' +
+            users.map(function(u) { return '<option value="' + u.id + '" ' + (task.assignee?.id === u.id ? 'selected' : '') + '>' + (u.full_name || u.last_name) + '</option>'; }).join('') +
+            '</select></div>' +
 
-                        <p class="text-muted">${task.description || 'Нет описания'}</p>
+            '<div class="info-box"><span>Приоритет</span>' +
+            '<select id="editPriority" style="margin-top:8px;height:40px;border:1px solid #d1d5db;border-radius:10px;padding:0 12px;font-size:14px;width:100%;">' +
+            '<option value="low" ' + (task.priority === 'low' ? 'selected' : '') + '>🟢 Низкий</option>' +
+            '<option value="medium" ' + (task.priority === 'medium' ? 'selected' : '') + '>🟡 Средний</option>' +
+            '<option value="high" ' + (task.priority === 'high' ? 'selected' : '') + '>🟠 Высокий</option>' +
+            '<option value="critical" ' + (task.priority === 'critical' ? 'selected' : '') + '>🔴 Критичный</option>' +
+            '</select></div>' +
 
-                        <div class="row mt-3">
-                            <div class="col-md-6">
-                                <table class="table table-sm">
-                                    <tr><td>Проект</td><td><strong>${task.project_name || '—'}</strong></td></tr>
-                                    <tr><td>Создатель</td><td><strong>${task.creator?.full_name || '—'}</strong></td></tr>
-                                    <tr><td>Исполнитель</td><td><strong>${task.assignee?.full_name || 'Не назначена'}</strong></td></tr>
-                                    <tr><td>Проверяющий</td><td><strong>${task.reviewer?.full_name || '—'}</strong></td></tr>
-                                </table>
-                            </div>
-                            <div class="col-md-6">
-                                <table class="table table-sm">
-                                    <tr><td>Дедлайн</td><td class="${task.is_overdue ? 'text-danger' : ''}"><strong>${task.deadline ? new Date(task.deadline).toLocaleString() : '—'}</strong></td></tr>
-                                    <tr><td>Оценка</td><td><strong>${task.estimated_hours || '—'} ч</strong></td></tr>
-                                    <tr><td>Затрачено</td><td><strong>${task.spent_hours || '0'} ч</strong></td></tr>
-                                    <tr><td>Создана</td><td><strong>${new Date(task.created_at).toLocaleString()}</strong></td></tr>
-                                </table>
-                            </div>
-                        </div>
+            '<div class="info-box"><span>Дедлайн</span><h4 style="color:' + (task.is_overdue ? '#ef4444' : 'inherit') + '">' + (task.deadline ? new Date(task.deadline).toLocaleString('ru-RU') : 'Не указан') + '</h4></div>' +
+            '<div class="info-box"><span>Проект</span><h4>' + (task.project_name || 'Без проекта') + '</h4></div>' +
+            '<div class="info-box"><span>Создатель</span><h4>' + (task.creator?.full_name || '—') + '</h4></div>' +
+            '<div class="info-box"><span>Дата создания</span><h4>' + new Date(task.created_at).toLocaleString('ru-RU') + '</h4></div>' +
+            '</div>' +
 
-                        <div class="mt-3">
-                            <label class="form-label fw-bold">Изменить статус</label>
-                            <div class="d-flex gap-2">
-                                <button class="btn btn-sm btn-outline-secondary" onclick="changeStatus('todo')">К выполнению</button>
-                                <button class="btn btn-sm btn-outline-warning" onclick="changeStatus('in_progress')">В работу</button>
-                                <button class="btn btn-sm btn-outline-primary" onclick="changeStatus('review')">На проверку</button>
-                                <button class="btn btn-sm btn-outline-success" onclick="changeStatus('done')">Выполнено</button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+            '<div style="margin-top:12px;display:flex;gap:8px;">' +
+            '<button class="btn btn-outline btn-sm" style="padding:8px 16px;" onclick="openShareModal()">📨 Поделиться</button>' +
+            '</div>' +
 
-                <div class="card mt-3 shadow-sm">
-                    <div class="card-header"><i class="bi bi-chat-dots"></i> Комментарии (${comments.results?.length || 0})</div>
-                    <div class="card-body">
-                        <div class="list-group list-group-flush mb-3" id="commentsList">
-                            ${(comments.results || []).map(c => `
-                                <div class="list-group-item">
-                                    <div class="d-flex justify-content-between">
-                                        <strong>${c.author?.full_name || '—'}</strong>
-                                        <small class="text-muted">${new Date(c.created_at).toLocaleString()}</small>
-                                    </div>
-                                    <p class="mb-0 mt-1">${c.text}</p>
-                                </div>
-                            `).join('')}
-                        </div>
-                        <form id="commentForm" class="d-flex gap-2">
-                            <input type="text" name="text" class="form-control" placeholder="Добавить комментарий..." required>
-                            <button type="submit" class="btn btn-primary btn-sm">Отправить</button>
-                        </form>
-                    </div>
-                </div>
+            '<button class="btn btn-primary" style="margin-top:20px;" onclick="saveChanges()">💾 Сохранить</button>' +
 
-                <div class="card mt-3 shadow-sm">
-                    <div class="card-header"><i class="bi bi-clock-history"></i> История изменений</div>
-                    <div class="card-body">
-                        <div class="list-group list-group-flush">
-                            ${(history.results || []).map(h => `
-                                <div class="list-group-item">
-                                    <div class="d-flex justify-content-between">
-                                        <strong>${h.user?.full_name || '—'}</strong>
-                                        <small class="text-muted">${new Date(h.created_at).toLocaleString()}</small>
-                                    </div>
-                                    <small>${h.field_name}: <span class="text-danger">${h.old_value || '—'}</span> → <span class="text-success">${h.new_value || '—'}</span></small>
-                                </div>
-                            `).join('') || '<p class="text-muted">Нет изменений</p>'}
-                        </div>
-                    </div>
-                </div>
-            </div>
+            '<div style="margin-top:20px;display:flex;gap:12px;flex-wrap:wrap;">' +
+            '<button class="btn btn-outline btn-sm" onclick="changeStatus(\'todo\')">📋 К выполнению</button>' +
+            '<button class="btn btn-outline btn-sm" onclick="changeStatus(\'in_progress\')">⚡ В работу</button>' +
+            '<button class="btn btn-outline btn-sm" onclick="changeStatus(\'review\')">👀 На проверку</button>' +
+            '<button class="btn btn-sm" style="background:#10b981;color:white;border:none;" onclick="changeStatus(\'done\')">✅ Выполнено</button>' +
+            '<button class="btn btn-outline btn-sm" style="color:#ef4444;border-color:#ef4444;" onclick="deleteTask()">🗑 Удалить</button>' +
+            '</div>';
 
-            <div class="col-md-4">
-                <div class="card shadow-sm">
-                    <div class="card-header"><i class="bi bi-stopwatch"></i> Учёт времени</div>
-                    <div class="card-body">
-                        <div class="mb-3">
-                            <h5>Всего: <span class="text-primary">${task.spent_hours || 0} ч</span></h5>
-                        </div>
-                        <form id="timelogForm">
-                            <div class="mb-2">
-                                <label class="form-label small">Часы</label>
-                                <input type="number" name="hours" class="form-control form-control-sm" step="0.5" min="0.5" placeholder="1.5" required>
-                            </div>
-                            <div class="mb-2">
-                                <label class="form-label small">Дата</label>
-                                <input type="date" name="date" class="form-control form-control-sm" value="${new Date().toISOString().split('T')[0]}" required>
-                            </div>
-                            <div class="mb-2">
-                                <label class="form-label small">Описание</label>
-                                <textarea name="description" class="form-control form-control-sm" rows="2"></textarea>
-                            </div>
-                            <button type="submit" class="btn btn-primary btn-sm w-100">Добавить</button>
-                        </form>
-                        <hr>
-                        <div id="timelogsList">
-                            ${(timelogs.results || []).map(t => `
-                                <div class="d-flex justify-content-between mb-1 small">
-                                    <span>${t.user?.full_name || '—'}: ${t.description || '—'}</span>
-                                    <strong>${t.hours}ч</strong>
-                                </div>
-                            `).join('') || '<p class="text-muted small">Нет записей</p>'}
-                        </div>
-                    </div>
-                </div>
-            </div>`;
-    } catch (e) {
-        document.getElementById('taskContent').innerHTML = '<div class="col-12 text-center py-5"><h4 class="text-muted">Задача не найдена</h4></div>';
-    }
+        var cl = document.getElementById('commentsList');
+        cl.innerHTML = comments.length === 0 ? '<p style="color:#9ca3af;">Нет комментариев</p>' :
+            comments.map(function(c) { return '<div style="background:rgba(255,255,255,.7);border-radius:16px;padding:16px;margin-bottom:12px;"><div style="display:flex;justify-content:space-between;"><strong>' + (c.author?.full_name || '—') + '</strong><small>' + new Date(c.created_at).toLocaleString('ru-RU') + '</small></div><p style="margin:0;">' + c.text + '</p></div>'; }).join('');
+    });
 }
 
-async function changeStatus(status) {
-    await api.patch(`/tasks/${taskId}/status/`, { status });
-    loadTask();
+function saveChanges() {
+    var assignee = document.getElementById('editAssignee').value;
+    var priority = document.getElementById('editPriority').value;
+    fetch(A + '/tasks/tasks/' + taskId + '/', {
+        method: 'PATCH', headers: H,
+        body: JSON.stringify({ assignee: assignee || null, priority: priority })
+    }).then(function() { window.location.href = '/tasks/'; });
 }
 
-document.getElementById('commentForm')?.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const text = new FormData(e.target).get('text');
-    await api.post(`/tasks/${taskId}/comments/`, { text });
-    e.target.reset();
-    loadTask();
-});
-
-document.getElementById('timelogForm')?.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const data = Object.fromEntries(new FormData(e.target));
-    await api.post(`/tasks/${taskId}/timelogs/`, data);
-    e.target.reset();
-    loadTask();
-});
-
-function showDeleteModal() {
-    new bootstrap.Modal(document.getElementById('deleteTaskModal')).show();
+function changeStatus(status) {
+    fetch(A + '/tasks/tasks/' + taskId + '/status/', {
+        method: 'PATCH', headers: H, body: JSON.stringify({ status: status })
+    }).then(function() { loadTask(); });
 }
 
-document.getElementById('confirmDeleteTask').addEventListener('click', async () => {
-    await api.delete(`/tasks/${taskId}/`);
-    window.location.href = '/tasks/';
-});
+function openShareModal() {
+    document.getElementById('shareEmail').value = '';
+    document.getElementById('shareRole').value = 'viewer';
+    document.getElementById('shareError').style.display = 'none';
+    document.getElementById('shareModal').style.display = 'flex';
+}
+function closeShareModal() { document.getElementById('shareModal').style.display = 'none'; }
 
-function editTask(id) {
-    window.location.href = `/tasks/${id}/edit/`;
+function sendShare() {
+    var email = document.getElementById('shareEmail').value;
+    var role = document.getElementById('shareRole').value;
+    if (!email) { document.getElementById('shareError').textContent = 'Введите email'; document.getElementById('shareError').style.display = 'block'; return; }
+
+    fetch(A + '/tasks/tasks/' + taskId + '/share/', {
+        method: 'POST', headers: H,
+        body: JSON.stringify({ email: email, role: role })
+    }).then(r => r.json()).then(function(d) {
+        if (d.status === 'shared') {
+            closeShareModal();
+            alert('Задача отправлена!');
+        } else {
+            document.getElementById('shareError').textContent = d.error;
+            document.getElementById('shareError').style.display = 'block';
+        }
+    });
+}
+
+function addComment() {
+    var text = document.getElementById('commentInput').value;
+    if (!text) return;
+    fetch(A + '/tasks/tasks/' + taskId + '/comments/', {
+        method: 'POST', headers: H, body: JSON.stringify({ text: text })
+    }).then(function() { document.getElementById('commentInput').value = ''; loadTask(); });
+}
+
+function deleteTask() {
+    if (!confirm('Удалить задачу?')) return;
+    fetch(A + '/tasks/tasks/' + taskId + '/', {
+        method: 'DELETE', headers: { 'Authorization': 'Bearer ' + T }
+    }).then(function() { window.location.href = '/tasks/'; });
 }
 
 loadTask();
 </script>
+
 {% endblock %}
