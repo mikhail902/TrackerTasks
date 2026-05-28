@@ -28,6 +28,7 @@
 
 </section>
 
+<!-- Модалка проекта -->
 <div id="projectModal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.5);z-index:1000;align-items:center;justify-content:center;">
     <div class="auth-card" style="max-width:500px;">
         <h2 id="modalTitle">Новый проект</h2>
@@ -42,23 +43,45 @@
     </div>
 </div>
 
-<script>
-var API_URL = 'http://localhost:8000/api';
-var TOKEN = localStorage.getItem('access');
+<!-- Модалка приглашения -->
+<div id="inviteModal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.5);z-index:1001;align-items:center;justify-content:center;">
+    <div class="auth-card" style="max-width:450px;">
+        <h2>📨 Пригласить участника</h2>
+        <input type="hidden" id="inviteProjectId">
+        <label style="font-size:14px;color:#374151;margin-bottom:4px;display:block;">Email</label>
+        <input type="email" id="inviteEmail" placeholder="user@example.com" required style="height:50px;width:100%;margin-bottom:12px;border:1px solid #d1d5db;border-radius:14px;padding:0 16px;font-size:15px;">
+        <label style="font-size:14px;color:#374151;margin-bottom:4px;display:block;">Роль в проекте</label>
+        <select id="inviteRole" style="height:50px;width:100%;margin-bottom:12px;border:1px solid #d1d5db;border-radius:14px;padding:0 16px;font-size:15px;">
+            <option value="developer">Разработчик</option>
+            <option value="manager">Менеджер</option>
+            <option value="designer">Дизайнер</option>
+            <option value="tester">Тестировщик</option>
+            <option value="analyst">Аналитик</option>
+        </select>
+        <label style="font-size:14px;color:#374151;margin-bottom:4px;display:block;">Никнейм (по умолчанию email)</label>
+        <input type="text" id="inviteNickname" placeholder="Никнейм" style="height:50px;width:100%;margin-bottom:16px;border:1px solid #d1d5db;border-radius:14px;padding:0 16px;font-size:15px;">
+        <div id="inviteError" style="color:#ef4444;font-size:14px;display:none;margin-bottom:12px;"></div>
+        <div style="display:flex;gap:12px;">
+            <button class="btn btn-outline" style="flex:1;" onclick="closeInviteModal()">Отмена</button>
+            <button class="btn btn-primary" style="flex:1;" onclick="sendInvite()">Отправить</button>
+        </div>
+    </div>
+</div>
 
-// Все функции глобально через window
-window.loadProjects = function() {
+<script>
+var A = 'http://localhost:8000/api';
+var T = localStorage.getItem('access');
+var H = function() { return { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + T }; };
+
+function loadProjects() {
     var f = document.getElementById('filter').value;
-    var url = API_URL + '/tasks/projects/';
+    var url = A + '/tasks/projects/';
     if (f !== 'all') url += '?status=' + f;
 
-    fetch(url, { headers: { 'Authorization': 'Bearer ' + TOKEN } })
+    fetch(url, { headers: { 'Authorization': 'Bearer ' + T } })
         .then(r => r.json())
         .then(function(d) {
             var p = Array.isArray(d) ? d : (d.results || []);
-            if (f === 'active') p = p.filter(function(x) { return x.status === 'active'; });
-            if (f === 'archived') p = p.filter(function(x) { return x.status === 'archived'; });
-
             var h = '';
             if (p.length === 0) {
                 var msg = f === 'archived' ? 'Нет архивных проектов' : 'Нет проектов';
@@ -68,38 +91,38 @@ window.loadProjects = function() {
                     var isArch = p[i].status === 'archived';
                     h += '<div class="project-card" style="' + (isArch ? 'opacity:0.6;' : '') + '">';
                     h += '<div class="project-gradient"></div>';
-                    h += '<h3>' + (isArch ? '📦 ' : '') + p[i].name + '</h3>';
+                    h += '<h3 style="cursor:pointer;" onclick="location.href=\'/projects/' + p[i].id + '/\'">' + (isArch ? '📦 ' : '') + p[i].name + '</h3>';
                     h += '<p>' + (p[i].description || 'Нет описания') + '</p>';
                     if (isArch) h += '<span style="color:#f59e0b;font-size:12px;">В архиве</span>';
-                    h += '<div style="display:flex;gap:6px;margin-top:12px;">';
-                    h += '<button class="btn btn-outline btn-sm" style="padding:6px 10px;font-size:11px;" onclick="window.editProject(' + p[i].id + ')">✏️</button>';
+                    h += '<div style="display:flex;gap:6px;margin-top:12px;flex-wrap:wrap;">';
+                    h += '<button class="btn btn-outline btn-sm" style="padding:6px 10px;font-size:11px;" onclick="event.stopPropagation(); editProject(' + p[i].id + ')">✏️</button>';
                     if (isArch) {
-                        h += '<button class="btn btn-outline btn-sm" style="padding:6px 10px;font-size:11px;color:#10b981;" onclick="window.unarchiveProject(' + p[i].id + ')">📂 Разархивировать</button>';
+                        h += '<button class="btn btn-outline btn-sm" style="padding:6px 10px;font-size:11px;color:#10b981;" onclick="event.stopPropagation(); unarchiveProject(' + p[i].id + ')">📂 Разархивировать</button>';
                     } else {
-                        h += '<button class="btn btn-outline btn-sm" style="padding:6px 10px;font-size:11px;color:#f59e0b;" onclick="window.archiveProject(' + p[i].id + ')">📦 В архив</button>';
+                        h += '<button class="btn btn-outline btn-sm" style="padding:6px 10px;font-size:11px;color:#f59e0b;" onclick="event.stopPropagation(); archiveProject(' + p[i].id + ')">📦 В архив</button>';
+                        h += '<button class="btn btn-outline btn-sm" style="padding:6px 10px;font-size:11px;" onclick="event.stopPropagation(); openInviteModal(' + p[i].id + ')">📨 Пригласить</button>';
                     }
-                    h += '<button class="btn btn-outline btn-sm" style="padding:6px 10px;font-size:11px;color:#ef4444;" onclick="window.deleteProject(' + p[i].id + ')">🗑</button>';
-                    h += '</div></div>';
+                    h += '<button class="btn btn-outline btn-sm" style="padding:6px 10px;font-size:11px;color:#ef4444;" onclick="event.stopPropagation(); deleteProject(' + p[i].id + ')">🗑</button>';
+                    h += '</div>';
+                    h += '</div>';
                 }
             }
             document.getElementById('projectList').innerHTML = h;
         });
-};
-window.openProjectModal = function() {
+}
+
+function openProjectModal() {
     document.getElementById('modalTitle').textContent = 'Новый проект';
     document.getElementById('editId').value = '';
     document.getElementById('projectName').value = '';
     document.getElementById('projectDesc').value = '';
     document.getElementById('projectDeadline').value = '';
     document.getElementById('projectModal').style.display = 'flex';
-};
+}
+function closeProjectModal() { document.getElementById('projectModal').style.display = 'none'; }
 
-window.closeProjectModal = function() {
-    document.getElementById('projectModal').style.display = 'none';
-};
-
-window.editProject = function(id) {
-    fetch(API_URL + '/tasks/projects/' + id + '/', { headers: { 'Authorization': 'Bearer ' + TOKEN } })
+function editProject(id) {
+    fetch(A + '/tasks/projects/' + id + '/', { headers: { 'Authorization': 'Bearer ' + T } })
         .then(r => r.json())
         .then(function(p) {
             document.getElementById('modalTitle').textContent = 'Изменить';
@@ -109,9 +132,9 @@ window.editProject = function(id) {
             document.getElementById('projectDeadline').value = p.deadline ? p.deadline.slice(0,16) : '';
             document.getElementById('projectModal').style.display = 'flex';
         });
-};
+}
 
-window.saveProject = function() {
+function saveProject() {
     var id = document.getElementById('editId').value;
     var data = {
         name: document.getElementById('projectName').value,
@@ -119,41 +142,70 @@ window.saveProject = function() {
         deadline: document.getElementById('projectDeadline').value || undefined
     };
     if (!data.deadline) delete data.deadline;
-    var url = id ? API_URL + '/tasks/projects/' + id + '/' : API_URL + '/tasks/projects/';
-    fetch(url, {
-        method: id ? 'PATCH' : 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + TOKEN },
-        body: JSON.stringify(data)
-    }).then(function() { window.closeProjectModal(); window.loadProjects(); });
-};
+    var url = id ? A + '/tasks/projects/' + id + '/' : A + '/tasks/projects/';
+    fetch(url, { method: id ? 'PATCH' : 'POST', headers: H(), body: JSON.stringify(data) })
+        .then(function() { closeProjectModal(); loadProjects(); });
+}
 
-window.archiveProject = function(id) {
-    fetch(API_URL + '/tasks/projects/' + id + '/', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + TOKEN },
-        body: JSON.stringify({ status: 'archived' })
-    }).then(function() { window.loadProjects(); });
-};
+function archiveProject(id) {
+    fetch(A + '/tasks/projects/' + id + '/', {
+        method: 'PATCH', headers: H(), body: JSON.stringify({ status: 'archived' })
+    }).then(function() { loadProjects(); });
+}
 
-window.unarchiveProject = function(id) {
-    fetch(API_URL + '/tasks/projects/' + id + '/', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + TOKEN },
-        body: JSON.stringify({ status: 'active' })
-    }).then(function() { window.loadProjects(); });
-};
+function unarchiveProject(id) {
+    fetch(A + '/tasks/projects/' + id + '/', {
+        method: 'PATCH', headers: H(), body: JSON.stringify({ status: 'active' })
+    }).then(function() { loadProjects(); });
+}
 
-window.deleteProject = function(id) {
-    if (confirm('Удалить проект? Все задачи будут удалены.')) {
-        fetch(API_URL + '/tasks/projects/' + id + '/', {
-            method: 'DELETE',
-            headers: { 'Authorization': 'Bearer ' + TOKEN }
-        }).then(function() { window.loadProjects(); });
+function deleteProject(id) {
+    if (confirm('Удалить проект?')) {
+        fetch(A + '/tasks/projects/' + id + '/', { method: 'DELETE', headers: { 'Authorization': 'Bearer ' + T } })
+            .then(function() { loadProjects(); });
     }
-};
+}
 
-// Загружаем при старте
-window.loadProjects();
+function openInviteModal(id) {
+    document.getElementById('inviteProjectId').value = id;
+    document.getElementById('inviteEmail').value = '';
+    document.getElementById('inviteRole').value = 'developer';
+    document.getElementById('inviteNickname').value = '';
+    document.getElementById('inviteError').style.display = 'none';
+    document.getElementById('inviteModal').style.display = 'flex';
+}
+function closeInviteModal() { document.getElementById('inviteModal').style.display = 'none'; }
+
+document.getElementById('inviteEmail').addEventListener('input', function() {
+    if (!document.getElementById('inviteNickname').value) {
+        document.getElementById('inviteNickname').value = this.value;
+    }
+});
+
+function sendInvite() {
+    var id = document.getElementById('inviteProjectId').value;
+    var email = document.getElementById('inviteEmail').value;
+    var role = document.getElementById('inviteRole').value;
+    var nickname = document.getElementById('inviteNickname').value || email;
+
+    if (!email) { document.getElementById('inviteError').textContent = 'Введите email'; document.getElementById('inviteError').style.display = 'block'; return; }
+
+    fetch(A + '/tasks/projects/' + id + '/invite/', {
+        method: 'POST',
+        headers: H(),
+        body: JSON.stringify({ email: email, role: role, nickname: nickname })
+    }).then(r => r.json()).then(function(d) {
+        if (d.status === 'invited') {
+            closeInviteModal();
+            alert('Приглашение отправлено!');
+        } else {
+            document.getElementById('inviteError').textContent = d.error;
+            document.getElementById('inviteError').style.display = 'block';
+        }
+    });
+}
+
+loadProjects();
 </script>
 
 {% endblock %}

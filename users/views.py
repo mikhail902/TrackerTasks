@@ -19,12 +19,15 @@ class UserRegisterView(CreateAPIView):
 
 
 class UserProfileView(RetrieveUpdateAPIView):
-    """Профиль текущего пользователя"""
-    serializer_class = UserUpdateSerializer
     permission_classes = [IsAuthenticated]
 
     def get_object(self):
         return self.request.user
+
+    def get_serializer_class(self):
+        if self.request.method == 'GET':
+            return UserSerializer
+        return UserUpdateSerializer
 
 
 class UserListView(APIView):

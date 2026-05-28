@@ -8,18 +8,15 @@
 <section class="page">
 
     <div class="page-header">
-
         <div>
             <h1>Уведомления</h1>
             <p>Последние события системы</p>
         </div>
-
-        <div class="d-flex gap-2">
+        <div style="display:flex;gap:8px;">
             <button class="btn btn-outline btn-sm active" id="btnAll" onclick="filterNotifs('all')">Все</button>
             <button class="btn btn-outline btn-sm" id="btnUnread" onclick="filterNotifs('unread')">Непрочитанные</button>
             <button class="btn btn-primary btn-sm" onclick="markAllRead()">Прочитать все</button>
         </div>
-
     </div>
 
     <div class="notifications-list" id="notificationsList">
@@ -28,28 +25,28 @@
 
 </section>
 
-{% endblock %}
-
-{% block scripts %}
 <script>
-let allNotifs = [];
-let currentFilter = 'all';
+var A = 'http://localhost:8000/api';
+var T = localStorage.getItem('access');
+var allNotifs = [];
+var currentFilter = 'all';
 
-async function loadNotifications() {
-    try {
-        const data = await api.get('/tasks/notifications/');
-        allNotifs = data.results || [];
-        renderNotifs();
+function loadNotifications() {
+    fetch(A + '/tasks/notifications/', { headers: { 'Authorization': 'Bearer ' + T } })
+        .then(r => r.json())
+        .then(function(data) {
+            allNotifs = data.results || [];
+            renderNotifs();
+            updateBadge();
+        });
+}
 
-        // Обновить бейдж в навбаре
-        const unread = allNotifs.filter(n => !n.is_read).length;
-        const badge = document.getElementById('notif-badge');
-        if (badge) {
-            badge.textContent = unread;
-            badge.style.display = unread > 0 ? 'inline' : 'none';
-        }
-    } catch(e) {
-        document.getElementById('notificationsList').innerHTML = '<p style="color:#6b7280;text-align:center;padding:40px;">Ошибка загрузки</p>';
+function updateBadge() {
+    var unread = allNotifs.filter(function(n) { return !n.is_read; }).length;
+    var badge = document.getElementById('notif-badge');
+    if (badge) {
+        badge.textContent = unread;
+        badge.style.display = unread > 0 ? 'inline' : 'none';
     }
 }
 
@@ -61,71 +58,91 @@ function filterNotifs(filter) {
 }
 
 function renderNotifs() {
-    let filtered = currentFilter === 'unread' ? allNotifs.filter(n => !n.is_read) : allNotifs;
-    const container = document.getElementById('notificationsList');
+    var filtered = currentFilter === 'unread' ? allNotifs.filter(function(n) { return !n.is_read; }) : allNotifs;
+    var container = document.getElementById('notificationsList');
 
     if (filtered.length === 0) {
-        container.innerHTML = `
-            <div style="text-align:center;padding:60px 20px;">
-                <div style="font-size:48px;margin-bottom:16px;">🔔</div>
-                <h3 style="color:#6b7280;">Нет уведомлений</h3>
-                <p style="color:#9ca3af;">${currentFilter === 'unread' ? 'Все уведомления прочитаны' : 'Здесь будут появляться уведомления'}</p>
-            </div>`;
+        container.innerHTML = '<div style="text-align:center;padding:60px;"><div style="font-size:48px;">🔔</div><h3 style="color:#6b7280;">Нет уведомлений</h3></div>';
         return;
     }
 
-    container.innerHTML = filtered.map(n => `
-        <div class="notification-card" style="${n.is_read ? '' : 'border-left: 3px solid #4f46e5;'}">
-            <div class="notification-dot" style="background:${n.is_read ? '#d1d5db' : '#4f46e5'};"></div>
-            <div style="flex:1;">
-                <div style="display:flex;justify-content:space-between;align-items:start;">
-                    <h4 style="margin:0;">${getNotificationTitle(n.type)}</h4>
-                    ${!n.is_read ? `<button class="btn btn-outline btn-sm" onclick="markRead(${n.id})" style="padding:6px 12px;font-size:12px;">Прочитано</button>` : ''}
-                </div>
-                <p style="margin:4px 0 0 0;">${n.message}</p>
-                ${n.task_title ? `<a href="/tasks/${n.task}/" style="color:#4f46e5;font-size:14px;">→ ${n.task_title}</a>` : ''}
-                <small style="color:#9ca3af;">${formatDate(n.created_at)}</small>
-            </div>
-        </div>
-    `).join('');
+    var titles = { task_assigned: '📋 Новая задача', task_status: '🔄 Статус изменён', task_comment: '💬 Новый комментарий', deadline_soon: '⏰ Дедлайн приближается', mention: '📢 Упоминание' };
+
+    container.innerHTML = filtered.map(function(n) {
+        var isInvite = n.type === 'mention' && n.message.indexOf('приглашает') !== -1 && !n._handled;
+        var actions = '';
+        if (isInvite) {
+            actions = '<div style="margin-top:8px;display:flex;gap:8px;">' +
+                '<button class="btn btn-sm" style="background:#10b981;color:white;border:none;padding:6px 14px;border-radius:10px;font-size:12px;" onclick="handleInvite(\'accept\', ' + n.id + ')">✅ Принять</button>' +
+                '<button class="btn btn-sm" style="background:#ef4444;color:white;border:none;padding:6px 14px;border-radius:10px;font-size:12px;" onclick="handleInvite(\'decline\', ' + n.id + ')">❌ Отклонить</button>' +
+                '</div>';
+        }
+        return '<div class="notification-card" style="' + (n.is_read ? '' : 'border-left:3px solid #4f46e5;') + '">' +
+            '<div class="notification-dot" style="background:' + (n.is_read ? '#d1d5db' : '#4f46e5') + ';"></div>' +
+            '<div style="flex:1;">' +
+            '<div style="display:flex;justify-content:space-between;"><h4 style="margin:0;">' + (titles[n.type] || 'Уведомление') + '</h4>' +
+            (!n.is_read ? '<button class="btn btn-outline btn-sm" style="padding:4px 10px;font-size:11px;" onclick="markRead(' + n.id + ')">Прочитано</button>' : '') +
+            '</div><p style="margin:4px 0;">' + n.message + '</p>' +
+            (n.task_title ? '<a href="/tasks/' + n.task + '/" style="color:#4f46e5;font-size:14px;">→ ' + n.task_title + '</a>' : '') +
+            '<br><small style="color:#9ca3af;">' + formatDate(n.created_at) + '</small>' +
+            actions +
+            '</div></div>';
+    }).join('');
+}
+function handleInvite(action, notifId) {
+    var notif = allNotifs.find(function(n) { return n.id === notifId; });
+    if (!notif) return;
+
+    fetch(A + '/tasks/notifications/' + notifId + '/handle-invite/', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + T },
+        body: JSON.stringify({ action: action })
+    }).then(r => r.json()).then(function(d) {
+        notif.is_read = true;
+        // Удаляем кнопки — помечаем как обработанное
+        notif._handled = true;
+        if (d.status === 'accepted') {
+            notif.message = '✅ Приглашение принято';
+        } else {
+            notif.message = '❌ Приглашение отклонено';
+        }
+        renderNotifs();
+        updateBadge();
+    });
 }
 
-function getNotificationTitle(type) {
-    const titles = {
-        'task_assigned': '📋 Новая задача',
-        'task_status': '🔄 Статус изменён',
-        'task_comment': '💬 Новый комментарий',
-        'deadline_soon': '⏰ Дедлайн приближается',
-        'mention': '📢 Упоминание'
-    };
-    return titles[type] || 'Уведомление';
-}
-
-function formatDate(dateStr) {
-    const d = new Date(dateStr);
-    const now = new Date();
-    const diff = now - d;
+function formatDate(d) {
+    var date = new Date(d);
+    var now = new Date();
+    var diff = now - date;
     if (diff < 60000) return 'Только что';
     if (diff < 3600000) return Math.floor(diff/60000) + ' мин назад';
     if (diff < 86400000) return Math.floor(diff/3600000) + ' ч назад';
-    return d.toLocaleDateString('ru-RU', {day:'numeric',month:'long',hour:'2-digit',minute:'2-digit'});
+    return date.toLocaleDateString('ru-RU', {day:'numeric',month:'long',hour:'2-digit',minute:'2-digit'});
 }
 
-async function markRead(id) {
-    await api.post(`/tasks/notifications/${id}/read/`);
-    const notif = allNotifs.find(n => n.id === id);
-    if (notif) notif.is_read = true;
-    renderNotifs();
+function markRead(id) {
+    fetch(A + '/tasks/notifications/' + id + '/read/', { method: 'POST', headers: { 'Authorization': 'Bearer ' + T } })
+        .then(function() {
+            var n = allNotifs.find(function(x) { return x.id === id; });
+            if (n) n.is_read = true;
+            renderNotifs();
+            updateBadge();
+        });
 }
 
-async function markAllRead() {
-    for (const n of allNotifs) {
-        if (!n.is_read) await api.post(`/tasks/notifications/${n.id}/read/`);
-    }
-    allNotifs.forEach(n => n.is_read = true);
-    renderNotifs();
+function markAllRead() {
+    var promises = allNotifs.filter(function(n) { return !n.is_read; }).map(function(n) {
+        return fetch(A + '/tasks/notifications/' + n.id + '/read/', { method: 'POST', headers: { 'Authorization': 'Bearer ' + T } });
+    });
+    Promise.all(promises).then(function() {
+        allNotifs.forEach(function(n) { n.is_read = true; });
+        renderNotifs();
+        updateBadge();
+    });
 }
 
 loadNotifications();
 </script>
+
 {% endblock %}

@@ -1,5 +1,4 @@
 from rest_framework.serializers import ModelSerializer, SerializerMethodField
-from rest_framework import serializers
 from .models import User, Department
 
 
@@ -26,17 +25,8 @@ class UserSerializer(ModelSerializer):
 
     class Meta:
         model = User
-        fields = (
-            'id', 'email', 'password', 'first_name', 'last_name',
-            'middle_name', 'full_name', 'role', 'department',
-            'department_name', 'position', 'phone', 'avatar',
-            'telegram_chat_id', 'is_active', 'created_at'
-        )
-        extra_kwargs = {
-            'password': {'write_only': True},
-            'is_active': {'read_only': True},
-            'created_at': {'read_only': True},
-        }
+        fields = '__all__'
+        extra_kwargs = {'password': {'write_only': True}}
 
     def get_full_name(self, obj):
         return obj.full_name
@@ -48,7 +38,6 @@ class UserSerializer(ModelSerializer):
 
 
 class UserShortSerializer(ModelSerializer):
-    """Краткая информация о пользователе для списков"""
     full_name = SerializerMethodField()
 
     class Meta:
@@ -60,11 +49,14 @@ class UserShortSerializer(ModelSerializer):
 
 
 class UserUpdateSerializer(ModelSerializer):
-    """Обновление профиля без пароля"""
-
     class Meta:
         model = User
-        fields = (
-            'first_name', 'last_name', 'middle_name',
-            'phone', 'avatar', 'telegram_chat_id', 'position'
-        )
+        fields = ('first_name', 'last_name', 'middle_name', 'phone', 'position', 'telegram_chat_id')
+        extra_kwargs = {
+            'first_name': {'required': False},
+            'last_name': {'required': False},
+            'middle_name': {'required': False, 'allow_blank': True},
+            'phone': {'required': False, 'allow_blank': True},
+            'position': {'required': False, 'allow_blank': True},
+            'telegram_chat_id': {'required': False, 'allow_blank': True},
+        }

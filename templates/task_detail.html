@@ -22,6 +22,26 @@
 
 </section>
 
+<!-- Модалка "Поделиться" -->
+<div id="shareModal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.5);z-index:1001;align-items:center;justify-content:center;">
+    <div class="auth-card" style="max-width:450px;">
+        <h2>📨 Поделиться задачей</h2>
+        <label style="font-size:14px;color:#374151;margin-bottom:4px;display:block;">Email участника</label>
+        <input type="email" id="shareEmail" placeholder="user@example.com" required style="height:50px;width:100%;margin-bottom:12px;border:1px solid #d1d5db;border-radius:14px;padding:0 16px;font-size:15px;">
+        <label style="font-size:14px;color:#374151;margin-bottom:4px;display:block;">Роль</label>
+        <select id="shareRole" style="height:50px;width:100%;margin-bottom:12px;border:1px solid #d1d5db;border-radius:14px;padding:0 16px;font-size:15px;">
+            <option value="viewer">Наблюдатель</option>
+            <option value="executor">Исполнитель</option>
+            <option value="reviewer">Проверяющий</option>
+        </select>
+        <div id="shareError" style="color:#ef4444;font-size:14px;display:none;margin-bottom:12px;"></div>
+        <div style="display:flex;gap:12px;">
+            <button class="btn btn-outline" style="flex:1;" onclick="closeShareModal()">Отмена</button>
+            <button class="btn btn-primary" style="flex:1;" onclick="sendShare()">Отправить</button>
+        </div>
+    </div>
+</div>
+
 <script>
 var A = 'http://localhost:8000/api';
 var T = localStorage.getItem('access');
@@ -63,6 +83,10 @@ function loadTask() {
             '<div class="info-box"><span>Дата создания</span><h4>' + new Date(task.created_at).toLocaleString('ru-RU') + '</h4></div>' +
             '</div>' +
 
+            '<div style="margin-top:12px;display:flex;gap:8px;">' +
+            '<button class="btn btn-outline btn-sm" style="padding:8px 16px;" onclick="openShareModal()">📨 Поделиться</button>' +
+            '</div>' +
+
             '<button class="btn btn-primary" style="margin-top:20px;" onclick="saveChanges()">💾 Сохранить</button>' +
 
             '<div style="margin-top:20px;display:flex;gap:12px;flex-wrap:wrap;">' +
@@ -82,30 +106,58 @@ function loadTask() {
 function saveChanges() {
     var assignee = document.getElementById('editAssignee').value;
     var priority = document.getElementById('editPriority').value;
-    var data = {
-        assignee: assignee || null,
-        priority: priority
-    };
-    fetch(A + '/tasks/tasks/' + taskId + '/', { method: 'PATCH', headers: H, body: JSON.stringify(data) })
-        .then(function() { window.location.href = '/tasks/'; });
+    fetch(A + '/tasks/tasks/' + taskId + '/', {
+        method: 'PATCH', headers: H,
+        body: JSON.stringify({ assignee: assignee || null, priority: priority })
+    }).then(function() { window.location.href = '/tasks/'; });
 }
 
 function changeStatus(status) {
-    fetch(A + '/tasks/tasks/' + taskId + '/status/', { method: 'PATCH', headers: H, body: JSON.stringify({ status: status }) })
-        .then(function() { loadTask(); });
+    fetch(A + '/tasks/tasks/' + taskId + '/status/', {
+        method: 'PATCH', headers: H, body: JSON.stringify({ status: status })
+    }).then(function() { loadTask(); });
+}
+
+function openShareModal() {
+    document.getElementById('shareEmail').value = '';
+    document.getElementById('shareRole').value = 'viewer';
+    document.getElementById('shareError').style.display = 'none';
+    document.getElementById('shareModal').style.display = 'flex';
+}
+function closeShareModal() { document.getElementById('shareModal').style.display = 'none'; }
+
+function sendShare() {
+    var email = document.getElementById('shareEmail').value;
+    var role = document.getElementById('shareRole').value;
+    if (!email) { document.getElementById('shareError').textContent = 'Введите email'; document.getElementById('shareError').style.display = 'block'; return; }
+
+    fetch(A + '/tasks/tasks/' + taskId + '/share/', {
+        method: 'POST', headers: H,
+        body: JSON.stringify({ email: email, role: role })
+    }).then(r => r.json()).then(function(d) {
+        if (d.status === 'shared') {
+            closeShareModal();
+            alert('Задача отправлена!');
+        } else {
+            document.getElementById('shareError').textContent = d.error;
+            document.getElementById('shareError').style.display = 'block';
+        }
+    });
 }
 
 function addComment() {
     var text = document.getElementById('commentInput').value;
     if (!text) return;
-    fetch(A + '/tasks/tasks/' + taskId + '/comments/', { method: 'POST', headers: H, body: JSON.stringify({ text: text }) })
-        .then(function() { document.getElementById('commentInput').value = ''; loadTask(); });
+    fetch(A + '/tasks/tasks/' + taskId + '/comments/', {
+        method: 'POST', headers: H, body: JSON.stringify({ text: text })
+    }).then(function() { document.getElementById('commentInput').value = ''; loadTask(); });
 }
 
 function deleteTask() {
     if (!confirm('Удалить задачу?')) return;
-    fetch(A + '/tasks/tasks/' + taskId + '/', { method: 'DELETE', headers: { 'Authorization': 'Bearer ' + T } })
-        .then(function() { window.location.href = '/tasks/'; });
+    fetch(A + '/tasks/tasks/' + taskId + '/', {
+        method: 'DELETE', headers: { 'Authorization': 'Bearer ' + T }
+    }).then(function() { window.location.href = '/tasks/'; });
 }
 
 loadTask();

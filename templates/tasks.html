@@ -50,7 +50,7 @@
             </div>
             <div style="display:flex;gap:12px;">
                 <select id="taskAssignee" style="flex:1;height:50px;border:1px solid #d1d5db;border-radius:14px;padding:0 16px;font-size:15px;">
-                    <option value="">Не назначен</option>
+                    <option value="">Сначала выберите проект</option>
                 </select>
                 <input type="datetime-local" id="taskDeadline" required style="flex:1;height:50px;border:1px solid #d1d5db;border-radius:14px;padding:0 16px;font-size:15px;">
             </div>
@@ -69,10 +69,11 @@ var H = { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + T };
 var STATUSES = ['backlog', 'todo', 'in_progress', 'review', 'done'];
 var NAMES = { backlog: '📦 Бэклог', todo: '📋 К выполнению', in_progress: '⚡ В работе', review: '👀 На проверке', done: '✅ Выполнено' };
 var COLORS = { low: '#10b981', medium: '#f59e0b', high: '#f97316', critical: '#ef4444' };
+var allUsers = [];
 
 function loadBoard() {
     var pid = document.getElementById('projectFilter').value;
-    var url = A + '/tasks/tasks/';
+    var url = A + '/tasks/tasks/my/';
     if (pid) url += '?project=' + pid;
 
     fetch(url, { headers: { 'Authorization': 'Bearer ' + T } })
@@ -114,11 +115,35 @@ function loadFilters() {
         fetch(A + '/users/', { headers: { 'Authorization': 'Bearer ' + T } }).then(r => r.json())
     ]).then(function(r) {
         var p = Array.isArray(r[0]) ? r[0] : (r[0].results || []);
-        var u = Array.isArray(r[1]) ? r[1] : (r[1].results || r[1]);
+        allUsers = Array.isArray(r[1]) ? r[1] : (r[1].results || r[1]);
         document.getElementById('projectFilter').innerHTML = '<option value="">Все проекты</option>' + p.map(function(x) { return '<option value="' + x.id + '">' + x.name + '</option>'; }).join('');
         document.getElementById('taskProject').innerHTML = '<option value="">Без проекта</option>' + p.map(function(x) { return '<option value="' + x.id + '">' + x.name + '</option>'; }).join('');
-        document.getElementById('taskAssignee').innerHTML = '<option value="">Не назначен</option>' + u.map(function(x) { return '<option value="' + x.id + '">' + (x.full_name || x.last_name) + '</option>'; }).join('');
+        document.getElementById('taskAssignee').innerHTML = '<option value="">Сначала выберите проект</option>';
     });
+}
+
+document.getElementById('taskProject').addEventListener('change', function() {
+    loadProjectUsers(this.value);
+});
+
+function loadProjectUsers(projectId) {
+    var assigneeSelect = document.getElementById('taskAssignee');
+    if (!projectId) {
+        assigneeSelect.innerHTML = '<option value="">Сначала выберите проект</option>';
+        return;
+    }
+    fetch(A + '/tasks/tasks/project-users/?project_id=' + projectId, { headers: { 'Authorization': 'Bearer ' + T } })
+        .then(r => r.json())
+        .then(function(users) {
+            if (users.length === 0) {
+                assigneeSelect.innerHTML = '<option value="">Нет участников</option>';
+            } else {
+                assigneeSelect.innerHTML = '<option value="">Не назначен</option>' + users.map(function(x) { return '<option value="' + x.id + '">' + x.full_name + '</option>'; }).join('');
+            }
+        })
+        .catch(function() {
+            assigneeSelect.innerHTML = '<option value="">Ошибка загрузки</option>';
+        });
 }
 
 function openTaskModal() {
@@ -128,7 +153,7 @@ function openTaskModal() {
     document.getElementById('taskDesc').value = '';
     document.getElementById('taskPriority').value = 'medium';
     document.getElementById('taskProject').value = '';
-    document.getElementById('taskAssignee').value = '';
+    document.getElementById('taskAssignee').innerHTML = '<option value="">Сначала выберите проект</option>';
     var d = new Date();
     d.setDate(d.getDate() + 7);
     document.getElementById('taskDeadline').value = d.toISOString().slice(0, 16);

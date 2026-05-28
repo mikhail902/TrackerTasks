@@ -19,13 +19,10 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/users/', include('users.urls')),
     path('api/tasks/', include('tasks.urls')),
-
-    # Публичные
+    path('projects/<int:id>/', TemplateView.as_view(template_name='project_detail.html')),
     path('', TemplateView.as_view(template_name='home.html')),
     path('login/', TemplateView.as_view(template_name='login.html')),
     path('register/', TemplateView.as_view(template_name='register.html')),
-
-    # Приватные
     path('home/', TemplateView.as_view(template_name='home.html')),
     path('dashboard/', TemplateView.as_view(template_name='dashboard.html')),
     path('profile/', TemplateView.as_view(template_name='profile.html')),

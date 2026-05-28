@@ -70,7 +70,7 @@ var curYear = new Date().getFullYear();
 var selDate = null;
 
 function loadDashboard() {
-    fetch(A + '/tasks/tasks/', { headers: { 'Authorization': 'Bearer ' + T } })
+    fetch(A + '/tasks/tasks/?creator=' + JSON.parse(atob(T.split('.')[1])).user_id, ...)
         .then(r => r.json())
         .then(function(d) {
             allTasks = Array.isArray(d) ? d : (d.results || []);

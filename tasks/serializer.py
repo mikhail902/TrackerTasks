@@ -136,3 +136,9 @@ class NotificationSerializer(ModelSerializer):
         if obj.task:
             return obj.task.title
         return None
+
+class ProjectCreateSerializer(ModelSerializer):
+    class Meta:
+        model = Project
+        fields = ('name', 'description', 'deadline', 'team', 'status')
+        extra_kwargs = {'team': {'required': False}, 'status': {'required': False}}
